@@ -33,3 +33,7 @@ build/
 .vscode/
 .env
 
+# Vault Configuration (contains sensitive tokens)
+src/main/resources/bootstrap.properties
+src/main/resources/bootstrap-*.properties
+
