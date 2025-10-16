@@ -1,0 +1,1 @@
+{{customer.name}}, you left "{{cart.items.first.name}}" (+{{cart.items.count}} items) worth ${{cart.total}} in cart! Checkout: nexgate.com/cart

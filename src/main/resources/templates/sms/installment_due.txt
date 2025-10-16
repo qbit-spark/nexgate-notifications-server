@@ -1,0 +1,1 @@
+Hi {{customer.name}}, installment ${{installment.amount}} due on {{installment.dueDate}} for order {{orderId}}. {{installment.remaining}} payments left. Pay: nexgate.com/pay/{{installment.id}}

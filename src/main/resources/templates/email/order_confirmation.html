@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">✓ Order Confirmed!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">Thank you for your purchase</p>
+</div>
+
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+
+    <p style="font-size: 16px;">Hi <strong>{{customer.name}}</strong>,</p>
+
+    <p>Your order has been confirmed and is being processed!</p>
+
+    <!-- Order Info -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+        <h2 style="color: #667eea; margin-top: 0;">📦 Order Details</h2>
+        <p><strong>Order ID:</strong> {{orderId}}</p>
+        <p><strong>Order Date:</strong> {{orderDate}}</p>
+        <p><strong>Total Amount:</strong> ${{payment.amount}}</p>
+    </div>
+
+    <!-- Items List -->
+    <h3 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Your Items</h3>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+        <tr style="background-color: #f8f9fa;">
+            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">#</th>
+            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Item</th>
+            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Qty</th>
+            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #dee2e6;">Price</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#each items}}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 12px;">{{index}}</td>
+            <td style="padding: 12px;"><strong>{{this.name}}</strong><br><small style="color: #666;">SKU: {{this.sku}}</small></td>
+            <td style="padding: 12px; text-align: center;">{{this.quantity}}</td>
+            <td style="padding: 12px; text-align: right;">${{this.price}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    </table>
+
+    <!-- Shipping Info -->
+    {{#if shipping.address}}
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h3 style="color: #2196F3; margin-top: 0;">🚚 Shipping Information</h3>
+        <p><strong>Address:</strong> {{shipping.address}}</p>
+        <p><strong>City:</strong> {{shipping.city}}, {{shipping.state}} {{shipping.zip}}</p>
+        <p><strong>Method:</strong> {{shipping.method}}</p>
+    </div>
+    {{/if}}
+
+    <!-- Payment Info -->
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+        <h3 style="color: #4CAF50; margin-top: 0;">💳 Payment Information</h3>
+        <p><strong>Method:</strong> {{payment.method}}</p>
+        {{#if payment.last4}}
+        <p><strong>Card:</strong> **** **** **** {{payment.last4}}</p>
+        {{/if}}
+        <p><strong>Amount Charged:</strong> <span style="font-size: 18px; color: #4CAF50; font-weight: bold;">${{payment.amount}}</span></p>
+    </div>
+
+    <!-- Tracking -->
+    <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
+        <p style="margin-bottom: 15px;">Track your order anytime:</p>
+        <a href="https://nexgate.com/orders/{{orderId}}"
+           style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Track Order
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        Questions? Reply to this email or contact our support team.<br>
+        <strong>The Nexgate Team</strong>
+    </p>
+</div>
+</body>
+</html>

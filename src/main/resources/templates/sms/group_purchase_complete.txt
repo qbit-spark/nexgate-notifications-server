@@ -1,0 +1,1 @@
+Group buy success! {{participants.first.name}}, {{participants.1.name}} +{{participants.count}} joined. Your price: ${{finalPrice}}

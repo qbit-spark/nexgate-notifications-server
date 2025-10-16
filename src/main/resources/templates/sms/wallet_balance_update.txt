@@ -1,0 +1,1 @@
+{{customer.name}}, your wallet balance updated. {{transaction.type}}: ${{transaction.amount}}. New balance: ${{wallet.currentBalance}}. Ref: {{transaction.id}} - Nexgate

@@ -1,0 +1,1 @@
+Payment received! ${{amount}} has been successfully processed for order {{orderId}}. Receipt: nexgate.com/receipts/{{receiptId}} - Nexgate

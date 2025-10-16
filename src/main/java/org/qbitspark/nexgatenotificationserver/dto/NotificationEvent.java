@@ -1,6 +1,5 @@
 package org.qbitspark.nexgatenotificationserver.dto;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +28,8 @@ public class NotificationEvent {
     private List<NotificationChannel> channels;
 
     @JsonProperty("priority")
-    private NotificationPriority priority;
+    @Builder.Default
+    private NotificationPriority priority = NotificationPriority.NORMAL;  // Default to NORMAL if not provided
 
     @JsonProperty("data")
     private Map<String, Object> data;

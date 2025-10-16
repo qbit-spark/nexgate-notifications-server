@@ -1,0 +1,1 @@
+Payment failed for order {{orderId}}. Card ****{{payment.last4}} declined. Reason: {{payment.failureReason}}. Update payment: nexgate.com/payment/retry/{{orderId}} - Nexgate

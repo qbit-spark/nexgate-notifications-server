@@ -1,0 +1,1 @@
+{{shop.name}} Alert! Product "{{product.name}}" ({{product.sku}}) is low: only {{inventory.quantity}} units left. Restock now: nexgate.com/seller/inventory/{{product.id}}

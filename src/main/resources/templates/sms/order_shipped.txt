@@ -1,0 +1,1 @@
+{{customer.name}}, your order shipped! {{items.0.name}}, {{items.1.name}} +{{items.count}} more. Tracking: {{tracking.number}} ETA: {{tracking.eta}}

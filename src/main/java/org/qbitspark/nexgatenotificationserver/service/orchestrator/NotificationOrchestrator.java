@@ -2,76 +2,75 @@ package org.qbitspark.nexgatenotificationserver.service.orchestrator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.qbitspark.nexgatenotificationserver.dto.EmailResult;
 import org.qbitspark.nexgatenotificationserver.dto.NotificationEvent;
 import org.qbitspark.nexgatenotificationserver.dto.Recipient;
-import org.qbitspark.nexgatenotificationserver.entity.NotificationEntity;
-import org.qbitspark.nexgatenotificationserver.enums.NotificationChannel;
-import org.qbitspark.nexgatenotificationserver.enums.NotificationStatus;
-import org.qbitspark.nexgatenotificationserver.repository.NotificationRepository;
-import org.qbitspark.nexgatenotificationserver.service.channel.EmailService;
+import org.qbitspark.nexgatenotificationserver.service.batch.NotificationBatchProcessor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationOrchestrator {
 
-    private final NotificationRepository notificationRepository;
-    private final EmailService emailService;
+    private final NotificationBatchProcessor batchProcessor;
+
+    @Value("${notification.batch.size:15}")
+    private int batchSize;
 
     public void process(NotificationEvent event) {
-        log.info("Processing notification: type={}, recipients={}",
-                event.getType(), event.getRecipients().size());
-
         String correlationId = UUID.randomUUID().toString();
+        List<Recipient> allRecipients = event.getRecipients();
 
-        for (Recipient recipient : event.getRecipients()) {
-            NotificationEntity notification = NotificationEntity.builder()
-                    .correlationId(correlationId)
-                    .userId(recipient.getUserId())
-                    .recipientEmail(recipient.getEmail())
-                    .recipientPhone(recipient.getPhone())
-                    .recipientName(recipient.getName())
-                    .type(event.getType())
-                    .channels(event.getChannels())
-                    .status(NotificationStatus.PROCESSING)
-                    .templateData(event.getData())
-                    .build();
+        log.info("🚀 Starting notification processing:");
+        log.info("   Type: {}", event.getType());
+        log.info("   Total Recipients: {}", allRecipients.size());
+        log.info("   Channels: {}", event.getChannels());
+        log.info("   Priority: {}", event.getPriority());
+        log.info("   CorrelationId: {}", correlationId);
 
-            // Save first
-            notification = notificationRepository.save(notification);
+        // Split into batches
+        List<List<Recipient>> batches = splitIntoBatches(allRecipients, batchSize);
+        log.info("📦 Split into {} batches (size: {})", batches.size(), batchSize);
 
-            // Send email if channel includes EMAIL
-            if (event.getChannels().contains(NotificationChannel.EMAIL)) {
-                EmailResult result = sendEmailForType(event.getType().name(), recipient.getEmail(), event.getData());
+        // Process batches in parallel
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int i = 0; i < batches.size(); i++) {
+            int batchNumber = i + 1;
+            List<Recipient> batch = batches.get(i);
 
-                if (result.isSuccess()) {
-                    notification.setStatus(NotificationStatus.SENT);
-                    notification.setSentAt(LocalDateTime.now());
-                    log.info("Email sent successfully to: {}", recipient.getEmail());
-                } else {
-                    notification.setStatus(NotificationStatus.FAILED);
-                    log.error("Email failed for: {}", recipient.getEmail());
-                }
-
-                notificationRepository.save(notification);
-            }
+            log.info("⚡ Dispatching batch #{} with {} recipients", batchNumber, batch.size());
+            CompletableFuture<Void> future = batchProcessor.processBatch(
+                    correlationId,
+                    batchNumber,
+                    batch,
+                    event
+            );
+            futures.add(future);
         }
+
+        // Wait for all batches to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenRun(() -> {
+                    log.info("🎉 All batches completed for correlationId: {}", correlationId);
+                })
+                .exceptionally(ex -> {
+                    log.error("❌ Error processing batches: {}", ex.getMessage(), ex);
+                    return null;
+                });
     }
 
-    private EmailResult sendEmailForType(String type, String to, Map<String, Object> data) {
-        return switch (type) {
-            case "ORDER_CONFIRMATION" -> emailService.sendOrderConfirmation(to, data);
-            case "PAYMENT_RECEIVED" -> emailService.sendPaymentReceived(to, data);
-            default -> {
-                log.warn("Unknown notification type: {}", type);
-                yield EmailResult.builder().success(false).errorMessage("Unknown type").build();
-            }
-        };
+    private <T> List<List<T>> splitIntoBatches(List<T> list, int batchSize) {
+        List<List<T>> batches = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, list.size());
+            batches.add(list.subList(i, end));
+        }
+        return batches;
     }
 }

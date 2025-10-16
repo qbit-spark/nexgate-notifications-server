@@ -1,0 +1,1 @@
+New order alert! {{shop.name}}: Order {{orderId}} from {{customer.name}} - ${{payment.amount}}. {{order.itemCount}} items. View: nexgate.com/seller/orders/{{orderId}}
