@@ -2,8 +2,11 @@ package org.qbitspark.nexgatenotificationserver.service.channel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.qbitspark.nexgatenotificationserver.dto.SmsResult;
 import org.qbitspark.nexgatenotificationserver.enums.NotificationType;
+import org.qbitspark.nexgatenotificationserver.provider.sms.SmsProvider;
 import org.qbitspark.nexgatenotificationserver.service.template.TemplateService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -14,6 +17,10 @@ import java.util.Map;
 public class SmsService {
 
     private final TemplateService templateService;
+    private final SmsProvider smsProvider;
+
+    @Value("${sms.sender-id:NEXGATE}")
+    private String defaultSenderId;
 
     public boolean send(NotificationType type, String phone, Map<String, Object> data) {
         // Step 1: Pick template based on notification type
@@ -24,17 +31,29 @@ public class SmsService {
         // Step 2: Formulate message using template
         String smsBody = templateService.renderSmsTemplate(templateName, data);
 
-        // Step 3: Mock send (will be replaced with actual provider later)
-        log.info("📱 [MOCK] SMS prepared:");
+        // Step 3: Get sender ID (can be customized per notification type)
+        String senderId = getSenderIdForType(type);
+
+        log.info("📱 SMS ready to send:");
         log.info("   To: {}", phone);
+        log.info("   From: {}", senderId);
         log.info("   Type: {}", type);
         log.info("   Template: {}", templateName);
-        log.info("   Data: {}", data);
-        log.info("   Message: {}", smsBody);
-        log.info("   Length: {} chars", smsBody.length());
+        log.info("   Message length: {} chars", smsBody.length());
+        log.info("   Provider: {}", smsProvider.getProviderName());
 
-        // Simulate success
-        return true;
+        // Step 4: Send via provider
+        SmsResult result = smsProvider.sendSms(phone, smsBody, senderId);
+
+        if (result.isSuccess()) {
+            log.info("✅ SMS sent successfully: messageId={}, provider={}",
+                    result.getMessageId(), result.getProvider());
+        } else {
+            log.error("❌ SMS failed: error={}, provider={}",
+                    result.getErrorMessage(), result.getProvider());
+        }
+
+        return result.isSuccess();
     }
 
     private String getTemplateForType(NotificationType type) {
@@ -53,6 +72,16 @@ public class SmsService {
             case GROUP_PURCHASE_COMPLETE -> "group_purchase_complete";
             case WELCOME_EMAIL -> "welcome_message";
             case PROMOTIONAL_OFFER -> "promotional_offer";
+        };
+    }
+
+    private String getSenderIdForType(NotificationType type) {
+        // You can customize sender ID per notification type
+        return switch (type) {
+            case PAYMENT_RECEIVED, PAYMENT_FAILURE, WALLET_BALANCE_UPDATE -> "NEXGATE-PAY";
+            case ORDER_CONFIRMATION, ORDER_SHIPPED, ORDER_DELIVERED -> "NEXGATE";
+            case PROMOTIONAL_OFFER -> "NEXGATE-MKT";
+            default -> defaultSenderId;
         };
     }
 }
