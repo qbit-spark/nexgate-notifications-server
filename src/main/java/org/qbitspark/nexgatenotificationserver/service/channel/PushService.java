@@ -86,7 +86,7 @@ public class PushService {
     private int getPriorityForType(NotificationType type) {
         return switch (type) {
             case PAYMENT_FAILURE, INSTALLMENT_DUE, SHOP_LOW_INVENTORY -> 8; // High priority
-            case ORDER_CONFIRMATION, PAYMENT_RECEIVED, SHOP_NEW_ORDER -> 6; // Medium-high
+            case ORDER_CONFIRMATION, PAYMENT_RECEIVED, SHOP_NEW_ORDER -> 10; // Medium-high
             case ORDER_SHIPPED, ORDER_DELIVERED, WALLET_BALANCE_UPDATE -> 5; // Medium
             case CART_ABANDONMENT, CHECKOUT_EXPIRY, PROMOTIONAL_OFFER -> 3; // Low-medium
             case WELCOME_EMAIL, GROUP_PURCHASE_COMPLETE -> 4; // Normal
