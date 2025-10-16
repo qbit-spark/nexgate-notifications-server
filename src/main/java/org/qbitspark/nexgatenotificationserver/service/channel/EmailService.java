@@ -2,13 +2,15 @@ package org.qbitspark.nexgatenotificationserver.service.channel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.qbitspark.nexgatenotificationserver.dto.EmailMessage;
 import org.qbitspark.nexgatenotificationserver.dto.EmailResult;
 import org.qbitspark.nexgatenotificationserver.enums.NotificationType;
+import org.qbitspark.nexgatenotificationserver.provider.email.EmailProvider;
 import org.qbitspark.nexgatenotificationserver.service.template.TemplateService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -16,6 +18,10 @@ import java.util.UUID;
 public class EmailService {
 
     private final TemplateService templateService;
+    private final EmailProvider emailProvider;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
     public EmailResult send(NotificationType type, String to, Map<String, Object> data) {
         // Step 1: Pick template based on notification type
@@ -24,26 +30,37 @@ public class EmailService {
 
         log.info("📧 Preparing email: type={}, template={}, to={}", type, templateName, to);
 
-        // Step 2: Formulate message using template
+        // Step 2: Render the template
         String htmlBody = templateService.renderEmailTemplate(templateName, data);
 
-        // Step 3: Mock send (will be replaced with actual provider later)
-        String messageId = UUID.randomUUID().toString();
+        // Step 3: Build EmailMessage
+        EmailMessage emailMessage = EmailMessage.builder()
+                .to(to)
+                .from(fromEmail)
+                .subject(subject)
+                .htmlBody(htmlBody)
+                .textBody(null) // Optional: could add plain text version later
+                .build();
 
-        log.info("📧 [MOCK] Email prepared:");
+        log.info("📧 Sending email via provider: {}", emailProvider.getProviderName());
+        log.info("   From: {}", fromEmail);
         log.info("   To: {}", to);
         log.info("   Subject: {}", subject);
-        log.info("   Template: {}", templateName);
-        log.info("   Data: {}", data);
-        log.info("   MessageId: {}", messageId);
         log.info("   Body length: {} chars", htmlBody.length());
 
-        // Simulate success
-        return EmailResult.builder()
-                .success(true)
-                .messageId(messageId)
-                .provider("mock-email")
-                .build();
+        // Step 4: Send via actual provider
+        EmailResult result = emailProvider.sendEmail(emailMessage);
+
+        // Step 5: Log result
+        if (result.isSuccess()) {
+            log.info("✅ Email sent successfully via {}: messageId={}",
+                    result.getProvider(), result.getMessageId());
+        } else {
+            log.error("❌ Email failed via {}: error={}",
+                    result.getProvider(), result.getErrorMessage());
+        }
+
+        return result;
     }
 
     private String getTemplateForType(NotificationType type) {

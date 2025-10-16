@@ -30,7 +30,7 @@ public class TextfySmsProvider implements SmsProvider {
     @Value("${sms.textfy.sender-name}")
     private String defaultSenderName;
 
-    @Value("${sms.textfy.enabled:false}")
+    @Value("${sms.textfy.enabled}")
     private boolean enabled;
 
     @Value("${sms.textfy.batch-size:100}")
