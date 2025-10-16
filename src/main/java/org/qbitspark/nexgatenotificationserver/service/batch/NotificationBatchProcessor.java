@@ -11,6 +11,7 @@ import org.qbitspark.nexgatenotificationserver.enums.NotificationStatus;
 import org.qbitspark.nexgatenotificationserver.repository.NotificationRepository;
 import org.qbitspark.nexgatenotificationserver.service.channel.EmailService;
 import org.qbitspark.nexgatenotificationserver.service.channel.SmsService;
+import org.qbitspark.nexgatenotificationserver.service.channel.PushService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,7 @@ public class NotificationBatchProcessor {
     private final NotificationRepository notificationRepository;
     private final EmailService emailService;
     private final SmsService smsService;
+    private final PushService pushService;
 
     @Async("notificationExecutor")
     public CompletableFuture<Void> processBatch(
@@ -130,10 +132,16 @@ public class NotificationBatchProcessor {
     }
 
     private boolean sendPush(Recipient recipient, NotificationEvent event) {
-        log.info("🔔 [MOCK] Push notification would be sent to userId: {} (type: {})",
-                recipient.getUserId(), event.getType());
-        // TODO: Implement push notification service
-        return true;
+        if (recipient.getUserId() == null || recipient.getUserId().isBlank()) {
+            log.warn("🔔 ⚠️ No userId for recipient, skipping PUSH channel");
+            return false;
+        }
+
+        return pushService.send(
+                event.getType(),
+                recipient.getUserId(),
+                (Map<String, Object>) event.getData()
+        );
     }
 
     private boolean sendInApp(Recipient recipient, NotificationEvent event) {
