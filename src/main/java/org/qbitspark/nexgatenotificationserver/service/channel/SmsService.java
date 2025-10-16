@@ -19,7 +19,7 @@ public class SmsService {
     private final TemplateService templateService;
     private final SmsProvider smsProvider;
 
-    @Value("${sms.sender-id:NEXGATE}")
+    @Value("${sms.sender-id:Nexgate}")
     private String defaultSenderId;
 
     public boolean send(NotificationType type, String phone, Map<String, Object> data) {
@@ -31,8 +31,7 @@ public class SmsService {
         // Step 2: Formulate message using template
         String smsBody = templateService.renderSmsTemplate(templateName, data);
 
-        // Step 3: Get sender ID (can be customized per notification type)
-        String senderId = getSenderIdForType(type);
+        String senderId = defaultSenderId;
 
         log.info("📱 SMS ready to send:");
         log.info("   To: {}", phone);
@@ -75,13 +74,4 @@ public class SmsService {
         };
     }
 
-    private String getSenderIdForType(NotificationType type) {
-        // You can customize sender ID per notification type
-        return switch (type) {
-            case PAYMENT_RECEIVED, PAYMENT_FAILURE, WALLET_BALANCE_UPDATE -> "NEXGATE-PAY";
-            case ORDER_CONFIRMATION, ORDER_SHIPPED, ORDER_DELIVERED -> "NEXGATE";
-            case PROMOTIONAL_OFFER -> "NEXGATE-MKT";
-            default -> defaultSenderId;
-        };
-    }
 }

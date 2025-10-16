@@ -21,7 +21,7 @@ public class TextfySmsProvider implements SmsProvider {
 
     private final ApiClientGate apiClient;
 
-    @Value("${sms.textfy.api-url:https://textify.africa/api/message/create}")
+    @Value("${sms.textfy.api-url}")
     private String apiUrl;
 
     @Value("${sms.textfy.api-key}")
