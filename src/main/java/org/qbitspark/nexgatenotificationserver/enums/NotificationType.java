@@ -1,0 +1,18 @@
+package org.qbitspark.nexgatenotificationserver.enums;
+
+public enum NotificationType {
+    ORDER_CONFIRMATION,
+    ORDER_SHIPPED,
+    ORDER_DELIVERED,
+    PAYMENT_RECEIVED,
+    PAYMENT_FAILURE,
+    CART_ABANDONMENT,
+    CHECKOUT_EXPIRY,
+    WALLET_BALANCE_UPDATE,
+    INSTALLMENT_DUE,
+    SHOP_NEW_ORDER,
+    SHOP_LOW_INVENTORY,
+    GROUP_PURCHASE_COMPLETE,
+    WELCOME_EMAIL,
+    PROMOTIONAL_OFFER
+}
