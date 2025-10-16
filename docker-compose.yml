@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: nexgate_notification_postgres
+    restart: always
+    ports:
+      - "5433:5432"  # Using 5433 to avoid conflict with your main Nexgate DB
+    environment:
+      POSTGRES_DB: nexgate_notifications
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - notification_postgres_data:/var/lib/postgresql/data
+    networks:
+      - notification_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: nexgate_notification_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - notification_rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - notification_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    container_name: nexgate_notification_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - notification_redis_data:/data
+    networks:
+      - notification_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  notification_postgres_data:
+    driver: local
+  notification_rabbitmq_data:
+    driver: local
+  notification_redis_data:
+    driver: local
+
+networks:
+  notification_network:
+    driver: bridge
