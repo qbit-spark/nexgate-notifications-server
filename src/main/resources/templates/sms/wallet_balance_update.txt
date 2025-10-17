@@ -1,1 +1,1 @@
-{{customer.name}}, your wallet balance updated. {{transaction.type}}: ${{transaction.amount}}. New balance: ${{wallet.currentBalance}}. Ref: {{transaction.id}} - Nexgate
+{{customer.name}}, your wallet balance updated. {{transaction.type}}: TZS {{transaction.amount}}. New balance: TZS {{wallet.currentBalance}}. Ref: {{transaction.id}} - Nexgate

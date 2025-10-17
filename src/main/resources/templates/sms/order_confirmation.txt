@@ -1,1 +1,1 @@
-Hi {{customer.name}}! Order {{orderId}} confirmed: {{items.first.name}} {{#if items.1.name}}+ {{items.1.name}}{{/if}} ({{items.count}} items). Total: ${{payment.amount}}{{#if discount.code}} - {{discount.code}} applied{{/if}}. Track: nexgate.com/o/{{orderId}}
+Order confirmed! {{customer.name}}, your order {{orderNumber}} for {{payment.currency}} {{payment.amount}} has been placed. {{order.itemCount}} items from {{shop.name}}. Track: nexgate.com/orders/{{orderNumber}} - Nexgate

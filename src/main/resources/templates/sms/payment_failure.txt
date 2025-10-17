@@ -1,1 +1,1 @@
-Payment failed for order {{orderId}}. Card ****{{payment.last4}} declined. Reason: {{payment.failureReason}}. Update payment: nexgate.com/payment/retry/{{orderId}} - Nexgate
+Payment failed. {{customer.name}}, your payment of {{payment.amount}} could not be processed. Reason: {{payment.failureReason}}. Please check your wallet or try again. - Nexgate

@@ -1,1 +1,1 @@
-Payment received! ${{amount}} has been successfully processed for order {{orderId}}. Receipt: nexgate.com/receipts/{{receiptId}} - Nexgate
+Payment received! {{customer.name}}, your payment of {{payment.currency}} {{payment.amount}} via {{payment.method}} was successful. Escrow: {{escrow.number}}. Your order is being processed. - Nexgate

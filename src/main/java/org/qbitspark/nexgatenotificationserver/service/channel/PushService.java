@@ -149,7 +149,7 @@ public class PushService {
         Object walletObj = data.get("wallet");
         String balance = walletObj instanceof Map ?
                 String.valueOf(((Map<?, ?>) walletObj).get("currentBalance")) : "0.00";
-        return String.format("Your wallet has been updated. New balance: $%s", balance);
+        return String.format("Your wallet has been updated. New balance: %s", balance);
     }
 
     private String formatInstallmentDue(Map<String, Object> data) {
@@ -158,7 +158,7 @@ public class PushService {
                 String.valueOf(((Map<?, ?>) installmentObj).get("amount")) : "0.00";
         String dueDate = installmentObj instanceof Map ?
                 String.valueOf(((Map<?, ?>) installmentObj).get("dueDate")) : "soon";
-        return String.format("Installment payment of $%s is due on %s.", amount, dueDate);
+        return String.format("Installment payment of %s is due on %s.", amount, dueDate);
     }
 
     private String formatShopNewOrder(Map<String, Object> data) {

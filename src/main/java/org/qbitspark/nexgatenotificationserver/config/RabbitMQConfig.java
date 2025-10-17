@@ -19,6 +19,34 @@ public class RabbitMQConfig {
         return new TopicExchange("notification.exchange");
     }
 
+
+    @Bean
+    public Queue walletQueue() {
+        return new Queue("notification.wallet.queue", true);
+    }
+
+    @Bean
+    public Binding walletBinding(Queue walletQueue, TopicExchange notificationExchange) {
+        return BindingBuilder
+                .bind(walletQueue)
+                .to(notificationExchange)
+                .with("notification.wallet");
+    }
+
+
+    @Bean
+    public Queue paymentQueue() {
+        return new Queue("notification.payment.queue", true);
+    }
+
+    @Bean
+    public Binding paymentBinding(Queue paymentQueue, TopicExchange notificationExchange) {
+        return BindingBuilder
+                .bind(paymentQueue)
+                .to(notificationExchange)
+                .with("notification.payment");
+    }
+
     @Bean
     public Queue orderQueue() {
         return new Queue("notification.order.queue", true);
@@ -30,6 +58,19 @@ public class RabbitMQConfig {
                 .bind(orderQueue)
                 .to(notificationExchange)
                 .with("notification.order");
+    }
+
+    @Bean
+    public Queue shopQueue() {
+        return new Queue("notification.shop.queue", true);
+    }
+
+    @Bean
+    public Binding shopBinding(Queue shopQueue, TopicExchange notificationExchange) {
+        return BindingBuilder
+                .bind(shopQueue)
+                .to(notificationExchange)
+                .with("notification.shop");
     }
 
     @Bean

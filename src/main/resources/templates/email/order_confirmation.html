@@ -23,9 +23,9 @@
     <!-- Order Info -->
     <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
         <h2 style="color: #667eea; margin-top: 0;">📦 Order Details</h2>
-        <p><strong>Order ID:</strong> {{orderId}}</p>
+        <p><strong>Order Number:</strong> {{orderNumber}}</p>
         <p><strong>Order Date:</strong> {{orderDate}}</p>
-        <p><strong>Total Amount:</strong> ${{payment.amount}}</p>
+        <p><strong>Total Amount:</strong> <span style="font-size: 20px; color: #667eea; font-weight: bold;">{{payment.currency}} {{payment.amount}}</span></p>
     </div>
 
     <!-- Items List -->
@@ -46,19 +46,24 @@
             <td style="padding: 12px;">{{index}}</td>
             <td style="padding: 12px;"><strong>{{this.name}}</strong><br><small style="color: #666;">SKU: {{this.sku}}</small></td>
             <td style="padding: 12px; text-align: center;">{{this.quantity}}</td>
-            <td style="padding: 12px; text-align: right;">${{this.price}}</td>
+            <td style="padding: 12px; text-align: right;">{{payment.currency}} {{this.price}}</td>
         </tr>
         {{/each}}
         </tbody>
     </table>
 
+    <!-- Shop Info -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h3 style="color: #2196F3; margin-top: 0;">🏪 Sold By</h3>
+        <p><strong>{{shop.name}}</strong></p>
+    </div>
+
     <!-- Shipping Info -->
     {{#if shipping.address}}
-    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
-        <h3 style="color: #2196F3; margin-top: 0;">🚚 Shipping Information</h3>
-        <p><strong>Address:</strong> {{shipping.address}}</p>
-        <p><strong>City:</strong> {{shipping.city}}, {{shipping.state}} {{shipping.zip}}</p>
-        <p><strong>Method:</strong> {{shipping.method}}</p>
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3 style="color: #856404; margin-top: 0;">🚚 Shipping Information</h3>
+        <p><strong>Delivery Address:</strong><br>{{shipping.address}}</p>
+        <p><strong>Shipping Fee:</strong> {{payment.currency}} {{shipping.fee}}</p>
     </div>
     {{/if}}
 
@@ -66,16 +71,21 @@
     <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
         <h3 style="color: #4CAF50; margin-top: 0;">💳 Payment Information</h3>
         <p><strong>Method:</strong> {{payment.method}}</p>
-        {{#if payment.last4}}
-        <p><strong>Card:</strong> **** **** **** {{payment.last4}}</p>
-        {{/if}}
-        <p><strong>Amount Charged:</strong> <span style="font-size: 18px; color: #4CAF50; font-weight: bold;">${{payment.amount}}</span></p>
+        <p><strong>Amount Paid:</strong> <span style="font-size: 18px; color: #4CAF50; font-weight: bold;">{{payment.currency}} {{payment.amount}}</span></p>
+    </div>
+
+    <!-- What's Next -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">📋 What's Next?</h3>
+        <p style="margin: 5px 0;">✓ Seller is preparing your order</p>
+        <p style="margin: 5px 0;">✓ You'll receive tracking info when shipped</p>
+        <p style="margin: 5px 0;">✓ Track your order status anytime</p>
     </div>
 
     <!-- Tracking -->
     <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
         <p style="margin-bottom: 15px;">Track your order anytime:</p>
-        <a href="https://nexgate.com/orders/{{orderId}}"
+        <a href="https://nexgate.com/orders/{{orderNumber}}"
            style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
             Track Order
         </a>

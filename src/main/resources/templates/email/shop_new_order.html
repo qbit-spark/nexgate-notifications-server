@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order Received</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">🔔 New Order!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">You have a new order at {{shop.name}}</p>
+</div>
+
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+
+    <p style="font-size: 16px;">Hi <strong>{{shop.name}}</strong>,</p>
+
+    <p>Great news! You've received a new order. Please prepare it for shipment.</p>
+
+    <!-- Order Info -->
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+        <h2 style="color: #4CAF50; margin-top: 0;">📦 Order Information</h2>
+        <p><strong>Order Number:</strong> {{orderNumber}}</p>
+        <p><strong>Order Date:</strong> {{orderDate}}</p>
+        <p><strong>Total Items:</strong> {{order.itemCount}}</p>
+        <p><strong>Order Total:</strong> <span style="font-size: 20px; color: #4CAF50; font-weight: bold;">{{order.currency}} {{order.totalAmount}}</span></p>
+    </div>
+
+    <!-- Earnings Info -->
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3 style="color: #856404; margin-top: 0;">💰 Your Earnings</h3>
+        <p><strong>You will receive:</strong> <span style="font-size: 22px; color: #4CAF50; font-weight: bold;">{{order.currency}} {{seller.amount}}</span></p>
+        <p style="font-size: 13px; color: #666;">Platform fee: {{order.currency}} {{platform.fee}}</p>
+    </div>
+
+    <!-- Customer Info -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h3 style="color: #2196F3; margin-top: 0;">👤 Customer Details</h3>
+        <p><strong>Name:</strong> {{customer.name}}</p>
+        <p><strong>Email:</strong> {{customer.email}}</p>
+        {{#if customer.phone}}
+        <p><strong>Phone:</strong> {{customer.phone}}</p>
+        {{/if}}
+    </div>
+
+    <!-- Items List -->
+    <h3 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Order Items</h3>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+        <tr style="background-color: #f8f9fa;">
+            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">#</th>
+            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Product</th>
+            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Qty</th>
+            <th style="padding: 12px; text-align: right; border-bottom: 2px solid #dee2e6;">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#each items}}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 12px;">{{index}}</td>
+            <td style="padding: 12px;"><strong>{{this.name}}</strong><br><small style="color: #666;">SKU: {{this.sku}}</small></td>
+            <td style="padding: 12px; text-align: center;">{{this.quantity}}</td>
+            <td style="padding: 12px; text-align: right;">{{this.total}}</td>
+        </tr>
+        {{/each}}
+        </tbody>
+    </table>
+
+    <!-- Shipping Address -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+        <h3 style="color: #667eea; margin-top: 0;">📍 Ship To</h3>
+        <p style="white-space: pre-line;">{{shipping.address}}</p>
+    </div>
+
+    <!-- Action Required -->
+    <div style="background-color: #ffebee; padding: 20px; border-left: 4px solid #f44336; margin: 20px 0;">
+        <h3 style="color: #f44336; margin-top: 0;">⚡ Action Required</h3>
+        <p style="margin: 5px 0;">• Prepare the items for shipment</p>
+        <p style="margin: 5px 0;">• Package securely</p>
+        <p style="margin: 5px 0;">• Mark as shipped when ready</p>
+    </div>
+
+    <!-- Call to Action -->
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://nexgate.com/seller/orders/{{orderNumber}}"
+           style="display: inline-block; background-color: #4CAF50; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+            View Order Details
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        Need help? Contact seller support.<br>
+        <strong>The Nexgate Team</strong>
+    </p>
+</div>
+</body>
+</html>
