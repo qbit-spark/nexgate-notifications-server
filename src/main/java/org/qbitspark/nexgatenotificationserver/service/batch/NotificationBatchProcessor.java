@@ -10,6 +10,7 @@ import org.qbitspark.nexgatenotificationserver.enums.NotificationChannel;
 import org.qbitspark.nexgatenotificationserver.enums.NotificationStatus;
 import org.qbitspark.nexgatenotificationserver.repository.NotificationRepository;
 import org.qbitspark.nexgatenotificationserver.service.channel.EmailService;
+import org.qbitspark.nexgatenotificationserver.service.channel.InAppService;
 import org.qbitspark.nexgatenotificationserver.service.channel.SmsService;
 import org.qbitspark.nexgatenotificationserver.service.channel.PushService;
 import org.springframework.scheduling.annotation.Async;
@@ -30,6 +31,7 @@ public class NotificationBatchProcessor {
     private final EmailService emailService;
     private final SmsService smsService;
     private final PushService pushService;
+    private final InAppService inAppService;
 
     @Async("notificationExecutor")
     public CompletableFuture<Void> processBatch(
@@ -144,12 +146,20 @@ public class NotificationBatchProcessor {
         );
     }
 
+
     private boolean sendInApp(Recipient recipient, NotificationEvent event) {
-        log.info("📬 [MOCK] In-app notification would be sent to userId: {} (type: {})",
-                recipient.getUserId(), event.getType());
-        // TODO: Implement in-app notification service
-        return true;
+        if (recipient.getUserId() == null || recipient.getUserId().isBlank()) {
+            log.warn("📬 ⚠️ No userId for recipient, skipping IN_APP channel");
+            return false;
+        }
+
+        return inAppService.send(
+                event.getType(),
+                recipient.getUserId(),
+                (Map<String, Object>) event.getData()
+        );
     }
+
 
     private boolean sendWebhook(Recipient recipient, NotificationEvent event) {
         log.info("🪝 [MOCK] Webhook would be called for userId: {} (type: {})",
