@@ -9,5 +9,4 @@ public class NexgateNotificationServerApplication {
     public static void main(String[] args) {
         SpringApplication.run(NexgateNotificationServerApplication.class, args);
     }
-
 }
