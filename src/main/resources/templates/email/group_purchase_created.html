@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Group Purchase Started</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">🎯 New Group Purchase!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">A customer started a group buy</p>
+</div>
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi <strong>{{shop.name}}</strong>,</p>
+
+    <p>Great news! A new group purchase has been started for your product.</p>
+
+    <!-- Group Info -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h2 style="color: #2196F3; margin-top: 0;">📦 Group Details</h2>
+        <p><strong>Group Code:</strong> {{group.code}}</p>
+        <p><strong>Product:</strong> {{product.name}}</p>
+        <p><strong>Started By:</strong> {{creator.name}}</p>
+        <p><strong>Expires At:</strong> {{group.expiresAt}} ({{group.durationHours}} hours)</p>
+    </div>
+
+    <!-- Progress -->
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3 style="color: #856404; margin-top: 0;">📊 Progress</h3>
+        <p><strong>Seats Filled:</strong> {{group.seatsOccupied}}/{{group.totalSeats}}</p>
+        <p><strong>Progress:</strong> {{group.progressPercentage}}%</p>
+        <div style="background-color: #f0f0f0; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0;">
+            <div style="background-color: #4CAF50; height: 100%; width: {{group.progressPercentage}}%;"></div>
+        </div>
+        <p style="font-size: 13px; color: #666; margin-top: 10px;">{{group.seatsRemaining}} seats remaining</p>
+    </div>
+
+    <!-- Pricing -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+        <h3 style="color: #667eea; margin-top: 0;">💰 Pricing</h3>
+        <p><strong>Regular Price:</strong> <span style="text-decoration: line-through;">TZS {{price.regular}}</span></p>
+        <p><strong>Group Price:</strong> <span style="color: #4CAF50; font-size: 20px; font-weight: bold;">TZS {{price.group}}</span>
+        </p>
+        <p><strong>Savings:</strong> TZS {{price.savings}}</p>
+    </div>
+
+    <!-- What to Expect -->
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+        <h3 style="color: #4CAF50; margin-top: 0;">📋 What to Expect</h3>
+        <p style="margin: 5px 0;">• Group members will join over the next {{group.durationHours}} hours</p>
+        <p style="margin: 5px 0;">• When full, orders will be created automatically</p>
+        <p style="margin: 5px 0;">• You'll be notified to prepare and ship orders</p>
+        <p style="margin: 5px 0;">• If group doesn't fill, it will expire and refunds processed</p>
+    </div>
+
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        Monitor your group purchases in the seller dashboard.<br>
+        <strong>The Nexgate Team</strong>
+    </p>
+</div>
+</body>
+</html>

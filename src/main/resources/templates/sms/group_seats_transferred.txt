@@ -1,0 +1,1 @@
+{{customer.name}}, {{transfer.quantity}} seats transferred from {{source.groupCode}} to {{target.groupCode}}. New group progress: {{target.seatsOccupied}}/{{target.totalSeats}} - Nexgate

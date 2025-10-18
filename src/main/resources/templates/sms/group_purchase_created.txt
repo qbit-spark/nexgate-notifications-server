@@ -1,0 +1,1 @@
+{{shop.name}}, new group purchase started! Group {{group.code}} for {{product.name}}. Progress: {{group.seatsOccupied}}/{{group.totalSeats}} seats. Expires in {{group.durationHours}}hrs - Nexgate

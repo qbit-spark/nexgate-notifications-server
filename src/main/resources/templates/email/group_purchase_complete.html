@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Purchase Complete!</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">🎉 Group Purchase Complete!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">Your group buy is successful</p>
+</div>
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi <strong>{{customer.name}}</strong>,</p>
+
+    <p>Great news! Your group purchase is complete and your order has been created! 🎊</p>
+
+    <!-- Group Info -->
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+        <h2 style="color: #4CAF50; margin-top: 0;">✓ Group Completed</h2>
+        <p><strong>Group Code:</strong> {{group.code}}</p>
+        <p><strong>Product:</strong> {{product.name}}</p>
+        <p><strong>Completed At:</strong> {{group.completedAt}}</p>
+        <p><strong>Total Participants:</strong> {{group.totalParticipants}}</p>
+    </div>
+
+    <!-- Your Purchase -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+        <h3 style="color: #667eea; margin-top: 0;">📦 Your Purchase</h3>
+        <p><strong>Quantity:</strong> {{participant.quantity}} units</p>
+        <p><strong>Total Paid:</strong> {{price.currency}} {{participant.totalPaid}}</p>
+    </div>
+
+    <!-- Savings -->
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3 style="color: #856404; margin-top: 0;">💰 You Saved!</h3>
+        <p><strong>Regular Price:</strong> <span style="text-decoration: line-through;">{{price.currency}} {{price.regular}}</span>
+        </p>
+        <p><strong>Group Price:</strong> <span style="color: #4CAF50; font-size: 20px; font-weight: bold;">{{price.currency}} {{price.group}}</span>
+        </p>
+        <p><strong>Your Savings:</strong> <span style="color: #4CAF50; font-weight: bold;">{{price.currency}} {{price.savings}} ({{price.savingsPercentage}}%)</span>
+        </p>
+    </div>
+
+    <!-- What's Next -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h3 style="color: #2196F3; margin-top: 0;">📋 What's Next?</h3>
+        <p style="margin: 5px 0;">✓ Your order is being prepared</p>
+        <p style="margin: 5px 0;">✓ You'll receive tracking info when shipped</p>
+        <p style="margin: 5px 0;">✓ Track your order status anytime</p>
+    </div>
+
+    <!-- Shop Info -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 0; color: #666; font-size: 14px;">From: <strong>{{shop.name}}</strong></p>
+    </div>
+
+    <!-- Call to Action -->
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://nexgate.com/orders"
+           style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            View My Orders
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        Thank you for participating in our group purchase!<br>
+        <strong>The Nexgate Team</strong>
+    </p></div>
+</body>
+</html>

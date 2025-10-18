@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Member Joined Your Group</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">👥 Group Update!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">New member joined</p>
+</div>
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi <strong>{{customer.name}}</strong>,</p>
+
+    <p>Good news! <strong>{{newMember.name}}</strong> just joined your group purchase!</p>
+
+    <!-- Group Progress -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0;">
+        <h2 style="color: #2196F3; margin-top: 0;">📊 Group Progress</h2>
+        <p><strong>Group Code:</strong> {{group.code}}</p>
+        <p><strong>Product:</strong> {{product.name}}</p>
+        <p><strong>Seats Filled:</strong> {{group.seatsOccupied}}/{{group.totalSeats}}</p>
+        <p><strong>Progress:</strong> {{group.progressPercentage}}%</p>
+        <div style="background-color: #f0f0f0; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0;">
+            <div style="background-color: #4CAF50; height: 100%; width: {{group.progressPercentage}}%;"></div>
+        </div>
+        <p style="font-size: 13px; color: #666;">{{group.seatsRemaining}} seats remaining</p>
+    </div>
+
+    <!-- New Member Info -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0; font-size: 14px; color: #666;">New Member</p>
+        <p style="margin: 10px 0 0 0; font-size: 18px; font-weight: bold;">{{newMember.name}}</p>
+        <p style="margin: 5px 0 0 0; color: #666;">Added {{newMember.quantity}} units</p>
+    </div>
+
+    <!-- What's Next -->
+    {{#if group.seatsRemaining}}
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0; text-align: center;">
+        <h3 style="color: #856404; margin-top: 0;">📢 Share with Friends!</h3>
+        <p>Only {{group.seatsRemaining}} seats left! Share this group code:</p>
+        <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <span style="font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 2px;">{{group.code}}</span>
+        </div>
+        <p style="font-size: 13px; color: #666;">The more members, the sooner it completes!</p>
+    </div>
+    {{else}}
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0; text-align: center;">
+        <h3 style="color: #4CAF50; margin-top: 0;">🎉 Group is Full!</h3>
+        <p>Your group purchase will be completed shortly. You'll receive your order confirmation soon!</p>
+    </div>
+    {{/if}}
+
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        <strong>The Nexgate Team</strong>
+    </p>
+</div>
+</body>
+</html>
