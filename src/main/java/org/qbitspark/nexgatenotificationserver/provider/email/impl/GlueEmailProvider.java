@@ -26,6 +26,9 @@ public class GlueEmailProvider implements EmailProvider {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${email.app.name:NexGate}")
+    private String appName;
+
     @Override
     public String getProviderName() {
         return "glueemail";
@@ -42,7 +45,7 @@ public class GlueEmailProvider implements EmailProvider {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setFrom(fromEmail);
+            helper.setFrom(fromEmail, appName);
             helper.setTo(message.getTo());
             helper.setSubject(message.getSubject());
             helper.setText(message.getHtmlBody(), true); // true = HTML
