@@ -74,6 +74,19 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue groupPurchaseQueue() {
+        return new Queue("notification.group_purchase.queue", true);
+    }
+
+    @Bean
+    public Binding groupPurchaseBinding(Queue groupPurchaseQueue, TopicExchange notificationExchange) {
+        return BindingBuilder
+                .bind(groupPurchaseQueue)
+                .to(notificationExchange)
+                .with("notification.group_purchase");
+    }
+
+    @Bean
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();

@@ -59,6 +59,9 @@ public class PushService {
             case SHOP_NEW_ORDER -> "🔔 New Order!";
             case SHOP_LOW_INVENTORY -> "⚠️ Low Stock Alert";
             case GROUP_PURCHASE_COMPLETE -> "🎉 Group Buy Success!";
+            case GROUP_PURCHASE_CREATED -> "🎯 New Group Started!";
+            case GROUP_MEMBER_JOINED -> "👥 Member Joined Group!";
+            case GROUP_SEATS_TRANSFERRED -> "🔄 Seats Transferred!";
             case WELCOME_EMAIL -> "👋 Welcome to Nexgate!";
             case PROMOTIONAL_OFFER -> "🎁 Special Offer!";
         };
@@ -77,28 +80,26 @@ public class PushService {
             case INSTALLMENT_DUE -> formatInstallmentDue(data);
             case SHOP_NEW_ORDER -> formatShopNewOrder(data);
             case SHOP_LOW_INVENTORY -> formatLowInventory(data);
-            case GROUP_PURCHASE_COMPLETE -> formatGroupPurchase(data);
+            case GROUP_PURCHASE_COMPLETE -> formatGroupPurchaseComplete(data);
+            // ✅ ADD THESE:
+            case GROUP_PURCHASE_CREATED -> formatGroupPurchaseCreated(data);
+            case GROUP_MEMBER_JOINED -> formatGroupMemberJoined(data);
+            case GROUP_SEATS_TRANSFERRED -> formatGroupSeatsTransferred(data);
             case WELCOME_EMAIL -> formatWelcome(data);
             case PROMOTIONAL_OFFER -> formatPromotionalOffer(data);
         };
     }
 
-//    private int getPriorityForType(NotificationType type) {
-//        return switch (type) {
-//            case PAYMENT_FAILURE, INSTALLMENT_DUE, SHOP_LOW_INVENTORY -> 8; // High priority
-//            case ORDER_CONFIRMATION, PAYMENT_RECEIVED, SHOP_NEW_ORDER -> 6; // Medium-high
-//            case ORDER_SHIPPED, ORDER_DELIVERED, WALLET_BALANCE_UPDATE -> 5; // Medium
-//            case CART_ABANDONMENT, CHECKOUT_EXPIRY, PROMOTIONAL_OFFER -> 3; // Low-medium
-//            case WELCOME_EMAIL, GROUP_PURCHASE_COMPLETE -> 4; // Normal
-//        };
-//    }
 
     private int getPriorityForType(NotificationType type) {
         return switch (type) {
-            case PAYMENT_FAILURE, INSTALLMENT_DUE, SHOP_LOW_INVENTORY, ORDER_CONFIRMATION, PAYMENT_RECEIVED, SHOP_NEW_ORDER -> 10;
-            case ORDER_SHIPPED, ORDER_DELIVERED, WALLET_BALANCE_UPDATE -> 9;
-            case CART_ABANDONMENT, CHECKOUT_EXPIRY, PROMOTIONAL_OFFER -> 3;
-            case WELCOME_EMAIL, GROUP_PURCHASE_COMPLETE -> 4; // Normal
+            case PAYMENT_FAILURE, INSTALLMENT_DUE, SHOP_LOW_INVENTORY,
+                 ORDER_CONFIRMATION, PAYMENT_RECEIVED, SHOP_NEW_ORDER -> 10;
+            case ORDER_SHIPPED, ORDER_DELIVERED, WALLET_BALANCE_UPDATE,
+                 GROUP_PURCHASE_COMPLETE -> 9;
+            case CART_ABANDONMENT, CHECKOUT_EXPIRY, PROMOTIONAL_OFFER,
+                 GROUP_MEMBER_JOINED, GROUP_SEATS_TRANSFERRED -> 3;
+            case WELCOME_EMAIL, GROUP_PURCHASE_CREATED -> 4;
         };
     }
 
@@ -191,5 +192,63 @@ public class PushService {
     private String formatPromotionalOffer(Map<String, Object> data) {
         String offer = String.valueOf(data.getOrDefault("offer", "Special offer"));
         return String.format("%s available now! Don't miss out on exclusive deals.", offer);
+    }
+
+    // ========================================
+// GROUP PURCHASE MESSAGE FORMATTERS
+// ========================================
+
+    private String formatGroupPurchaseComplete(Map<String, Object> data) {
+        Map<?, ?> group = (Map<?, ?>) data.get("group");
+        Map<?, ?> product = (Map<?, ?>) data.get("product");
+        Map<?, ?> price = (Map<?, ?>) data.get("price");
+
+        String groupCode = group != null ? String.valueOf(group.get("code")) : "your group";
+        String productName = product != null ? String.valueOf(product.get("name")) : "product";
+        String savings = price != null ? String.valueOf(price.get("savings")) : "money";
+
+        return String.format("Group %s is complete! %s order created. You saved TZS %s!",
+                groupCode, productName, savings);
+    }
+
+    private String formatGroupPurchaseCreated(Map<String, Object> data) {
+        Map<?, ?> group = (Map<?, ?>) data.get("group");
+        Map<?, ?> product = (Map<?, ?>) data.get("product");
+        Map<?, ?> creator = (Map<?, ?>) data.get("creator");
+
+        String groupCode = group != null ? String.valueOf(group.get("code")) : "group";
+        String productName = product != null ? String.valueOf(product.get("name")) : "product";
+        String seatsOccupied = group != null ? String.valueOf(group.get("seatsOccupied")) : "0";
+        String totalSeats = group != null ? String.valueOf(group.get("totalSeats")) : "0";
+
+        return String.format("New group purchase started! Group %s for %s. Progress: %s/%s seats filled.",
+                groupCode, productName, seatsOccupied, totalSeats);
+    }
+
+    private String formatGroupMemberJoined(Map<String, Object> data) {
+        Map<?, ?> group = (Map<?, ?>) data.get("group");
+        Map<?, ?> newMember = (Map<?, ?>) data.get("newMember");
+
+        String groupCode = group != null ? String.valueOf(group.get("code")) : "your group";
+        String memberName = newMember != null ? String.valueOf(newMember.get("name")) : "Someone";
+        String seatsOccupied = group != null ? String.valueOf(group.get("seatsOccupied")) : "0";
+        String totalSeats = group != null ? String.valueOf(group.get("totalSeats")) : "0";
+        String seatsRemaining = group != null ? String.valueOf(group.get("seatsRemaining")) : "0";
+
+        return String.format("%s joined group %s! Progress: %s/%s seats. %s remaining!",
+                memberName, groupCode, seatsOccupied, totalSeats, seatsRemaining);
+    }
+
+    private String formatGroupSeatsTransferred(Map<String, Object> data) {
+        Map<?, ?> transfer = (Map<?, ?>) data.get("transfer");
+        Map<?, ?> source = (Map<?, ?>) data.get("source");
+        Map<?, ?> target = (Map<?, ?>) data.get("target");
+
+        String quantity = transfer != null ? String.valueOf(transfer.get("quantity")) : "0";
+        String sourceCode = source != null ? String.valueOf(source.get("groupCode")) : "group";
+        String targetCode = target != null ? String.valueOf(target.get("groupCode")) : "group";
+
+        return String.format("Successfully transferred %s seats from %s to %s!",
+                quantity, sourceCode, targetCode);
     }
 }

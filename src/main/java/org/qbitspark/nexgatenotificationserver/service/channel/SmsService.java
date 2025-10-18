@@ -69,6 +69,9 @@ public class SmsService {
             case SHOP_NEW_ORDER -> "shop_new_order";
             case SHOP_LOW_INVENTORY -> "shop_low_inventory";
             case GROUP_PURCHASE_COMPLETE -> "group_purchase_complete";
+            case GROUP_PURCHASE_CREATED -> "group_purchase_created";
+            case GROUP_MEMBER_JOINED -> "group_member_joined";
+            case GROUP_SEATS_TRANSFERRED -> "group_seats_transferred";
             case WELCOME_EMAIL -> "welcome_message";
             case PROMOTIONAL_OFFER -> "promotional_offer";
         };

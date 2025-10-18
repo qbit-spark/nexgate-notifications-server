@@ -77,6 +77,9 @@ public class EmailService {
             case SHOP_NEW_ORDER -> "shop_new_order";
             case SHOP_LOW_INVENTORY -> "shop_low_inventory";
             case GROUP_PURCHASE_COMPLETE -> "group_purchase_complete";
+            case GROUP_PURCHASE_CREATED -> "group_purchase_created";
+            case GROUP_MEMBER_JOINED -> "group_member_joined";
+            case GROUP_SEATS_TRANSFERRED -> "group_seats_transferred";
             case WELCOME_EMAIL -> "welcome_email";
             case PROMOTIONAL_OFFER -> "promotional_offer";
         };
@@ -96,6 +99,9 @@ public class EmailService {
             case SHOP_NEW_ORDER -> "New Order Received in Your Shop";
             case SHOP_LOW_INVENTORY -> "Low Inventory Alert";
             case GROUP_PURCHASE_COMPLETE -> "Group Purchase Completed Successfully";
+            case GROUP_PURCHASE_CREATED -> "New Group Purchase Started for Your Product";
+            case GROUP_MEMBER_JOINED -> "New Member Joined Your Group Purchase";
+            case GROUP_SEATS_TRANSFERRED -> "Seats Transferred Successfully";
             case WELCOME_EMAIL -> "Welcome to Nexgate!";
             case PROMOTIONAL_OFFER -> "Special Offer Just for You";
         };

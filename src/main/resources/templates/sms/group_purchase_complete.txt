@@ -1,1 +1,1 @@
-Group buy success! {{participants.first.name}}, {{participants.1.name}} +{{participants.count}} joined. Your price: ${{finalPrice}}
+{{customer.name}}, your group purchase is complete! Group {{group.code}} for {{product.name}} filled up. Your order is being prepared. Saved {{price.savings}}! Track: nexgate.com/orders - Nexgate
