@@ -1,1 +1,1 @@
-{{customer.name}}, your order shipped! {{items.0.name}}, {{items.1.name}} +{{items.count}} more. Tracking: {{tracking.number}} ETA: {{tracking.eta}}
+Your order {{orderNumber}} has shipped! Tracking: {{tracking.number}}. DELIVERY CODE: {{confirmationCode}} (save this!). You'll need it to confirm delivery. Track: nexgate.com/orders/{{orderNumber}} - Nexgate

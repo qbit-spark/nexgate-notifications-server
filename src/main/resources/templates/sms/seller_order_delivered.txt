@@ -1,0 +1,1 @@
+Order {{orderNumber}} delivered! Customer {{customer.name}} confirmed receipt. Payment released: {{currency}} {{seller.amount}} deposited to your wallet. - Nexgate

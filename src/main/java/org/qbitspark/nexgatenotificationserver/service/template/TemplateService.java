@@ -26,6 +26,18 @@ public class TemplateService {
     );
 
     public String renderEmailTemplate(String templateName, Map<String, Object> data) {
+        // Check if there's a role-specific template
+        String recipientRole = (String) data.get("recipientRole");
+
+        if (recipientRole != null && recipientRole.equals("SELLER")) {
+            // Try seller-specific template first
+            String sellerTemplate = loadTemplate("email/seller_" + templateName + ".html");
+            if (sellerTemplate != null) {
+                return renderTemplate(sellerTemplate, data);
+            }
+        }
+
+        // Fall back to regular template
         String template = loadTemplate("email/" + templateName + ".html");
         if (template == null) {
             log.warn("⚠️ Email template not found: {}, using fallback", templateName);
@@ -34,7 +46,20 @@ public class TemplateService {
         return renderTemplate(template, data);
     }
 
+
     public String renderSmsTemplate(String templateName, Map<String, Object> data) {
+        // Check if there's a role-specific template
+        String recipientRole = (String) data.get("recipientRole");
+
+        if (recipientRole != null && recipientRole.equals("SELLER")) {
+            // Try seller-specific template first
+            String sellerTemplate = loadTemplate("sms/seller_" + templateName + ".txt");
+            if (sellerTemplate != null) {
+                return renderTemplate(sellerTemplate, data);
+            }
+        }
+
+        // Fall back to regular template
         String template = loadTemplate("sms/" + templateName + ".txt");
         if (template == null) {
             log.warn("⚠️ SMS template not found: {}, using fallback", templateName);
