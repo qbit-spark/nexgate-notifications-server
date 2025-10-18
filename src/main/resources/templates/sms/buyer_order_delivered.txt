@@ -1,0 +1,1 @@
+{{customer.name}}, your order {{orderNumber}} has been delivered! Payment released to seller. Hope you love your purchase! Review: nexgate.com/orders/{{orderNumber}}/review - Nexgate

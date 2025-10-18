@@ -29,11 +29,21 @@ public class TemplateService {
         // Check if there's a role-specific template
         String recipientRole = (String) data.get("recipientRole");
 
-        if (recipientRole != null && recipientRole.equals("SELLER")) {
-            // Try seller-specific template first
-            String sellerTemplate = loadTemplate("email/seller_" + templateName + ".html");
-            if (sellerTemplate != null) {
-                return renderTemplate(sellerTemplate, data);
+        if (recipientRole != null) {
+            String roleTemplate = null;
+
+            if (recipientRole.equals("SELLER")) {
+                // Try seller-specific template first
+                roleTemplate = loadTemplate("email/seller_" + templateName + ".html");
+            } else if (recipientRole.equals("BUYER")) {
+                // Try buyer-specific template first
+                roleTemplate = loadTemplate("email/buyer_" + templateName + ".html");
+            }
+
+            if (roleTemplate != null) {
+                log.info("✅ Using role-specific template: {}_{}",
+                        recipientRole.toLowerCase(), templateName);
+                return renderTemplate(roleTemplate, data);
             }
         }
 
@@ -51,11 +61,21 @@ public class TemplateService {
         // Check if there's a role-specific template
         String recipientRole = (String) data.get("recipientRole");
 
-        if (recipientRole != null && recipientRole.equals("SELLER")) {
-            // Try seller-specific template first
-            String sellerTemplate = loadTemplate("sms/seller_" + templateName + ".txt");
-            if (sellerTemplate != null) {
-                return renderTemplate(sellerTemplate, data);
+        if (recipientRole != null) {
+            String roleTemplate = null;
+
+            if (recipientRole.equals("SELLER")) {
+                // Try seller-specific template first
+                roleTemplate = loadTemplate("sms/seller_" + templateName + ".txt");
+            } else if (recipientRole.equals("BUYER")) {
+                // Try buyer-specific template first
+                roleTemplate = loadTemplate("sms/buyer_" + templateName + ".txt");
+            }
+
+            if (roleTemplate != null) {
+                log.info("✅ Using role-specific SMS template: {}_{}",
+                        recipientRole.toLowerCase(), templateName);
+                return renderTemplate(roleTemplate, data);
             }
         }
 

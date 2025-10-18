@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Delivered</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<!-- Header -->
+<div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0;">🎉 Order Delivered!</h1>
+    <p style="color: #f0f0f0; margin: 10px 0 0 0;">Enjoy your purchase</p>
+</div>
+<!-- Main Content -->
+<div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi <strong>{{customer.name}}</strong>,</p>
+    <p>Thank you for confirming the delivery of your order! We hope you love your purchase.</p>
+    <!-- Order Info -->
+    <div style="background-color: #e8f5e9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+        <h2 style="color: #4CAF50; margin-top: 0;">✓ Order Completed</h2>
+        <p><strong>Order Number:</strong> {{orderNumber}}</p>
+        <p><strong>Delivered On:</strong> {{deliveredAt}}</p>
+        <p><strong>Status:</strong> <span style="color: #4CAF50; font-weight: bold;">COMPLETED</span></p>
+    </div>
+    <!-- Items Summary -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+        <h3 style="color: #667eea; margin-top: 0;">📦 Your Items ({{itemCount}})</h3>
+        {{#each items}}
+        <p style="margin: 5px 0;">• {{this.name}} (x{{this.quantity}})</p>
+        {{/each}}
+        <p style="margin-top: 15px; font-size: 13px; color: #666;">From: {{shop.name}}</p>
+    </div>
+    <!-- Payment Released -->
+    {{#if escrow.released}}
+    <div style="background-color: #fff3cd; padding: 20px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3 style="color: #856404; margin-top: 0;">💰 Payment Released</h3>
+        <p>Payment of <strong>{{escrow.amount}}</strong> has been released to the seller.</p>
+        <p style="font-size: 13px; color: #666; margin-top: 10px;">Your order is now complete. Thank you for shopping with Nexgate!</p>
+    </div>
+    {{/if}}
+    <!-- Review Prompt -->
+    <div style="background-color: #e7f3ff; padding: 20px; border-left: 4px solid #2196F3; margin: 20px 0; text-align: center;">
+        <h3 style="color: #2196F3; margin-top: 0;">⭐ How Was Your Experience?</h3>
+        <p>Help others by sharing your review!</p>
+        <a href="https://nexgate.com/orders/{{orderNumber}}/review"
+           style="display: inline-block; background-color: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px;">
+            Leave a Review
+        </a>
+    </div>
+    <!-- What's Next -->
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">🛍️ What's Next?</h3>
+        <p style="margin: 5px 0;">• Need something else? Continue shopping</p>
+        <p style="margin: 5px 0;">• Have an issue? Contact our support team</p>
+        <p style="margin: 5px 0;">• Love your purchase? Share a review</p>
+    </div>
+    <!-- Call to Action -->
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://nexgate.com"
+           style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Continue Shopping
+        </a>
+    </div>
+    <!-- Footer -->
+    <p style="color: #666; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        Thank you for choosing Nexgate! We appreciate your business.<br>
+        <strong>The Nexgate Team</strong>
+    </p>
+</div>
+</body>
+</html>
