@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:17
     container_name: nexgate_notification_postgres
     restart: always
     ports:
-      - "5433:5432"  # Using 5433 to avoid conflict with your main Nexgate DB
+      - "5431:5432"  # Using 5433 to avoid conflict with your main Nexgate DB
     environment:
       POSTGRES_DB: nexgate_notifications
       POSTGRES_USER: postgres

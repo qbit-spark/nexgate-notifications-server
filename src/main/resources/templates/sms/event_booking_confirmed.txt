@@ -1,0 +1,1 @@
+{{buyer.name}}, booking {{booking.id}} confirmed! {{booking.ticketCount}} ticket(s) for "{{event.name}}" on {{event.date}}. Check your email for PDF tickets. - Nexgate

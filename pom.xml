@@ -114,6 +114,26 @@
             <artifactId>spring-cloud-starter-vault-config</artifactId>
         </dependency>
 
+        <!-- iText PDF generation (AGPL - free for open source) -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itextpdf</artifactId>
+            <version>5.5.13.4</version>
+        </dependency>
+
+        <!-- ZXing - QR code generation from JWT token string -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
+
         <!-- Spring Cloud Bootstrap (required for Vault) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

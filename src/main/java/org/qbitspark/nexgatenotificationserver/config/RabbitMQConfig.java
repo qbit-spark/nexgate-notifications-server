@@ -19,73 +19,43 @@ public class RabbitMQConfig {
         return new TopicExchange("notification.exchange");
     }
 
-
-    @Bean
-    public Queue walletQueue() {
-        return new Queue("notification.wallet.queue", true);
+    // ── Wallet ────────────────────────────────────────────────
+    @Bean public Queue walletQueue() { return new Queue("notification.wallet.queue", true); }
+    @Bean public Binding walletBinding(Queue walletQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(walletQueue).to(notificationExchange).with("notification.wallet");
     }
 
-    @Bean
-    public Binding walletBinding(Queue walletQueue, TopicExchange notificationExchange) {
-        return BindingBuilder
-                .bind(walletQueue)
-                .to(notificationExchange)
-                .with("notification.wallet");
+    // ── Payment ───────────────────────────────────────────────
+    @Bean public Queue paymentQueue() { return new Queue("notification.payment.queue", true); }
+    @Bean public Binding paymentBinding(Queue paymentQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(paymentQueue).to(notificationExchange).with("notification.payment");
     }
 
-
-    @Bean
-    public Queue paymentQueue() {
-        return new Queue("notification.payment.queue", true);
+    // ── Order ─────────────────────────────────────────────────
+    @Bean public Queue orderQueue() { return new Queue("notification.order.queue", true); }
+    @Bean public Binding orderBinding(Queue orderQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(orderQueue).to(notificationExchange).with("notification.order");
     }
 
-    @Bean
-    public Binding paymentBinding(Queue paymentQueue, TopicExchange notificationExchange) {
-        return BindingBuilder
-                .bind(paymentQueue)
-                .to(notificationExchange)
-                .with("notification.payment");
+    // ── Shop ──────────────────────────────────────────────────
+    @Bean public Queue shopQueue() { return new Queue("notification.shop.queue", true); }
+    @Bean public Binding shopBinding(Queue shopQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(shopQueue).to(notificationExchange).with("notification.shop");
     }
 
-    @Bean
-    public Queue orderQueue() {
-        return new Queue("notification.order.queue", true);
+    // ── Group Purchase ────────────────────────────────────────
+    @Bean public Queue groupPurchaseQueue() { return new Queue("notification.group_purchase.queue", true); }
+    @Bean public Binding groupPurchaseBinding(Queue groupPurchaseQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(groupPurchaseQueue).to(notificationExchange).with("notification.group_purchase");
     }
 
-    @Bean
-    public Binding orderBinding(Queue orderQueue, TopicExchange notificationExchange) {
-        return BindingBuilder
-                .bind(orderQueue)
-                .to(notificationExchange)
-                .with("notification.order");
+    // ── Event ─────────────────────────────────────────────────
+    @Bean public Queue eventQueue() { return new Queue("notification.event.queue", true); }
+    @Bean public Binding eventBinding(Queue eventQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(eventQueue).to(notificationExchange).with("notification.event");
     }
 
-    @Bean
-    public Queue shopQueue() {
-        return new Queue("notification.shop.queue", true);
-    }
-
-    @Bean
-    public Binding shopBinding(Queue shopQueue, TopicExchange notificationExchange) {
-        return BindingBuilder
-                .bind(shopQueue)
-                .to(notificationExchange)
-                .with("notification.shop");
-    }
-
-    @Bean
-    public Queue groupPurchaseQueue() {
-        return new Queue("notification.group_purchase.queue", true);
-    }
-
-    @Bean
-    public Binding groupPurchaseBinding(Queue groupPurchaseQueue, TopicExchange notificationExchange) {
-        return BindingBuilder
-                .bind(groupPurchaseQueue)
-                .to(notificationExchange)
-                .with("notification.group_purchase");
-    }
-
+    // ── Shared infrastructure ─────────────────────────────────
     @Bean
     @Primary
     public ObjectMapper objectMapper() {

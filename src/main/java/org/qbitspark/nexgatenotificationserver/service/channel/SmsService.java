@@ -23,33 +23,18 @@ public class SmsService {
     private String defaultSenderId;
 
     public boolean send(NotificationType type, String phone, Map<String, Object> data) {
-        // Step 1: Pick template based on notification type
         String templateName = getTemplateForType(type);
 
         log.info("📱 Preparing SMS: type={}, template={}, to={}", type, templateName, phone);
 
-        // Step 2: Formulate message using template
         String smsBody = templateService.renderSmsTemplate(templateName, data);
 
-        String senderId = defaultSenderId;
-
-        log.info("📱 SMS ready to send:");
-        log.info("   To: {}", phone);
-        log.info("   From: {}", senderId);
-        log.info("   Type: {}", type);
-        log.info("   Template: {}", templateName);
-        log.info("   Message length: {} chars", smsBody.length());
-        log.info("   Provider: {}", smsProvider.getProviderName());
-
-        // Step 4: Send via provider
-        SmsResult result = smsProvider.sendSms(phone, smsBody, senderId);
+        SmsResult result = smsProvider.sendSms(phone, smsBody, defaultSenderId);
 
         if (result.isSuccess()) {
-            log.info("✅ SMS sent successfully: messageId={}, provider={}",
-                    result.getMessageId(), result.getProvider());
+            log.info("✅ SMS sent: messageId={}, provider={}", result.getMessageId(), result.getProvider());
         } else {
-            log.error("❌ SMS failed: error={}, provider={}",
-                    result.getErrorMessage(), result.getProvider());
+            log.error("❌ SMS failed: error={}, provider={}", result.getErrorMessage(), result.getProvider());
         }
 
         return result.isSuccess();
@@ -57,24 +42,28 @@ public class SmsService {
 
     private String getTemplateForType(NotificationType type) {
         return switch (type) {
-            case ORDER_CONFIRMATION -> "order_confirmation";
-            case ORDER_SHIPPED -> "order_shipped";
-            case ORDER_DELIVERED -> "order_delivered";
-            case PAYMENT_RECEIVED -> "payment_received";
-            case PAYMENT_FAILURE -> "payment_failure";
-            case CART_ABANDONMENT -> "cart_abandonment";
-            case CHECKOUT_EXPIRY -> "checkout_expiry";
-            case WALLET_BALANCE_UPDATE -> "wallet_balance_update";
-            case INSTALLMENT_DUE -> "installment_due";
-            case SHOP_NEW_ORDER -> "shop_new_order";
-            case SHOP_LOW_INVENTORY -> "shop_low_inventory";
-            case GROUP_PURCHASE_COMPLETE -> "group_purchase_complete";
-            case GROUP_PURCHASE_CREATED -> "group_purchase_created";
-            case GROUP_MEMBER_JOINED -> "group_member_joined";
-            case GROUP_SEATS_TRANSFERRED -> "group_seats_transferred";
-            case WELCOME_EMAIL -> "welcome_message";
-            case PROMOTIONAL_OFFER -> "promotional_offer";
+            case ORDER_CONFIRMATION        -> "order_confirmation";
+            case ORDER_SHIPPED             -> "order_shipped";
+            case ORDER_DELIVERED           -> "order_delivered";
+            case PAYMENT_RECEIVED          -> "payment_received";
+            case PAYMENT_FAILURE           -> "payment_failure";
+            case CART_ABANDONMENT          -> "cart_abandonment";
+            case CHECKOUT_EXPIRY           -> "checkout_expiry";
+            case WALLET_BALANCE_UPDATE     -> "wallet_balance_update";
+            case INSTALLMENT_DUE           -> "installment_due";
+            case SHOP_NEW_ORDER            -> "shop_new_order";
+            case SHOP_LOW_INVENTORY        -> "shop_low_inventory";
+            case GROUP_PURCHASE_COMPLETE   -> "group_purchase_complete";
+            case GROUP_PURCHASE_CREATED    -> "group_purchase_created";
+            case GROUP_MEMBER_JOINED       -> "group_member_joined";
+            case GROUP_SEATS_TRANSFERRED   -> "group_seats_transferred";
+            case WELCOME_EMAIL             -> "welcome_message";
+            case PROMOTIONAL_OFFER         -> "promotional_offer";
+
+            // ── Event ─────────────────────────────────────────────────────────
+            case EVENT_BOOKING_CONFIRMED      -> "event_booking_confirmed";
+            case EVENT_ATTENDEE_TICKET_ISSUED -> "event_attendee_ticket_issued";
+            case EVENT_ORGANIZER_NEW_BOOKING  -> "event_organizer_new_booking";
         };
     }
-
 }

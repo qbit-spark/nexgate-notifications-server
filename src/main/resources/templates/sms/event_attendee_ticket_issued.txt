@@ -1,0 +1,1 @@
+{{attendee.name}}, your ticket {{currentTicket.ticketId}} for "{{event.name}}" on {{event.date}} is ready. Booking ref: {{booking.id}}. Check your email for the PDF. - Nexgate

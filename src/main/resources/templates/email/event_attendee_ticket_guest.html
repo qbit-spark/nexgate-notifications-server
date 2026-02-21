@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Ticket is Ready</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f2f5;padding:32px 16px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+            <!-- ── Header ────────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);
+                   border-radius:16px 16px 0 0;padding:40px 40px 32px;text-align:center;">
+                    <p style="margin:0 0 20px;font-size:13px;font-weight:700;
+                      letter-spacing:3px;color:#667eea;text-transform:uppercase;">
+                        NEXGATE
+                    </p>
+                    <div style="display:inline-block;background:rgba(102,126,234,0.15);
+                        border:2px solid #667eea;border-radius:50%;
+                        width:64px;height:64px;line-height:64px;
+                        font-size:28px;margin-bottom:20px;">
+                        🎟️
+                    </div>
+                    <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#ffffff;">
+                        Your Ticket is Ready!
+                    </h1>
+                    <p style="margin:0;font-size:15px;color:#a0aec0;">
+                        Your ticket PDF is attached to this email
+                    </p>
+                </td>
+            </tr>
+
+            <!-- ── White body ────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:#ffffff;padding:40px;">
+
+                    <p style="margin:0 0 24px;font-size:16px;color:#2d3748;">
+                        Hi <strong>{{attendee.name}}</strong>,
+                    </p>
+                    <p style="margin:0 0 32px;font-size:15px;color:#4a5568;line-height:1.6;">
+                        You have been registered as an attendee for <strong>{{event.name}}</strong>.
+                        Your ticket is attached to this email as a PDF. Your QR code is inside the PDF — please bring it to the event.
+                    </p>
+
+                    <!-- ── Event card ────────────────────────────────────────── -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#f7f8fc;border-radius:12px;
+                          border:1px solid #e2e8f0;margin-bottom:32px;">
+                        <tr>
+                            <td style="padding:24px;">
+                                <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1a1a2e;">
+                                    {{event.name}}
+                                </p>
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding:5px 0;font-size:13px;color:#718096;">
+                                            📅&nbsp; <strong style="color:#2d3748;">{{event.date}}</strong>
+                                            {{#if event.time}}&nbsp;at&nbsp;<strong style="color:#2d3748;">{{event.time}}</strong>{{/if}}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px 0;font-size:13px;color:#718096;">
+                                            📍&nbsp; <strong style="color:#2d3748;">{{event.venue}}</strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- ── Ticket details ────────────────────────────────────── -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#f7f8fc;border-left:4px solid #667eea;
+                          border-radius:0 12px 12px 0;margin-bottom:32px;">
+                        <tr>
+                            <td style="padding:20px 24px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td width="50%">
+                                            <p style="margin:0;font-size:11px;font-weight:700;
+                                              color:#a0aec0;text-transform:uppercase;letter-spacing:1px;">
+                                                Ticket Type
+                                            </p>
+                                            <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#1a1a2e;">
+                                                {{currentTicket.ticketType}}
+                                            </p>
+                                        </td>
+                                        <td width="50%">
+                                            <p style="margin:0;font-size:11px;font-weight:700;
+                                              color:#a0aec0;text-transform:uppercase;letter-spacing:1px;">
+                                                Ticket #
+                                            </p>
+                                            <p style="margin:4px 0 0;font-size:15px;font-weight:700;
+                                              color:#667eea;font-family:monospace;">
+                                                {{currentTicket.ticketId}}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="padding-top:16px;">
+                                            <p style="margin:0;font-size:11px;font-weight:700;
+                                              color:#a0aec0;text-transform:uppercase;letter-spacing:1px;">
+                                                Booking Reference
+                                            </p>
+                                            <p style="margin:4px 0 0;font-size:15px;font-weight:700;
+                                              color:#1a1a2e;font-family:monospace;">
+                                                {{booking.id}}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- ── QR reminder ──────────────────────────────────────── -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#fffbeb;border:1px solid #fbd38d;
+                          border-radius:12px;margin-bottom:32px;">
+                        <tr>
+                            <td style="padding:18px 24px;">
+                                <p style="margin:0;font-size:13px;color:#744210;">
+                                    📎 <strong>Your QR code is in the attached PDF.</strong>
+                                    Show it at the entrance — printed or on your phone.
+                                    Do not share it with others.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- ── CTA: View ticket ──────────────────────────────────── -->
+                    <div style="text-align:center;margin-bottom:20px;">
+                        <a href="https://nexgate.com/tickets/{{currentTicket.ticketId}}"
+                           style="display:inline-block;background:#667eea;color:#ffffff;
+                          text-decoration:none;padding:14px 36px;border-radius:8px;
+                          font-size:15px;font-weight:700;">
+                            View My Ticket
+                        </a>
+                    </div>
+
+                    <!-- ── Create Account banner (guest only) ───────────────── -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+                          border-radius:12px;margin-top:8px;">
+                        <tr>
+                            <td style="padding:28px 32px;text-align:center;">
+                                <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#ffffff;">
+                                    Manage your tickets anytime
+                                </p>
+                                <p style="margin:0 0 20px;font-size:13px;color:rgba(255,255,255,0.80);line-height:1.5;">
+                                    This email address was used to book a ticket.
+                                    Create a free Nexgate account to view, manage, and transfer your tickets online.
+                                </p>
+                                <a href="https://nexgate.com/register?email={{attendee.email}}"
+                                   style="display:inline-block;background:#ffffff;
+                                  color:#667eea;text-decoration:none;
+                                  padding:13px 32px;border-radius:8px;
+                                  font-size:14px;font-weight:800;">
+                                    Create Free Account →
+                                </a>
+                                <p style="margin:16px 0 0;font-size:11px;color:rgba(255,255,255,0.60);">
+                                    Free · No credit card required
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
+                </td>
+            </tr>
+
+            <!-- ── Footer ────────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:#f7f8fc;border-radius:0 0 16px 16px;
+                   padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+                    <p style="margin:0;font-size:12px;color:#a0aec0;">
+                        Powered by <strong style="color:#667eea;">Nexgate</strong> &nbsp;·&nbsp;
+                        Questions? <a href="mailto:support@nexgate.com" style="color:#667eea;">support@nexgate.com</a>
+                    </p>
+                </td>
+            </tr>
+
+        </table>
+    </td></tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Booking Received</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f2f5;padding:32px 16px;">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+            <!-- ── Header ────────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);
+                   border-radius:16px 16px 0 0;padding:40px 40px 32px;text-align:center;">
+
+                    <p style="margin:0 0 20px;font-size:13px;font-weight:700;
+                      letter-spacing:3px;color:#667eea;text-transform:uppercase;">
+                        NEXGATE · ORGANIZER DASHBOARD
+                    </p>
+
+                    <!-- Bell icon -->
+                    <div style="display:inline-block;background:rgba(102,126,234,0.15);
+                        border:2px solid #667eea;border-radius:50%;
+                        width:64px;height:64px;line-height:64px;
+                        font-size:28px;margin-bottom:20px;">
+                        🔔
+                    </div>
+
+                    <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#ffffff;">
+                        New Booking Received!
+                    </h1>
+                    <p style="margin:0;font-size:15px;color:#a0aec0;">
+                        Someone just booked tickets for your event
+                    </p>
+                </td>
+            </tr>
+
+            <!-- ── Booking ref banner ─────────────────────────────────────────── -->
+            <tr>
+                <td style="background:#667eea;padding:18px 40px;text-align:center;">
+                    <p style="margin:0;font-size:12px;font-weight:700;
+                      letter-spacing:2px;color:rgba(255,255,255,0.7);text-transform:uppercase;">
+                        Booking Reference
+                    </p>
+                    <p style="margin:4px 0 0;font-size:22px;font-weight:800;
+                      color:#ffffff;font-family:monospace;letter-spacing:2px;"
+                       th:text="${booking?.id ?: 'N/A'}">BK-2026-001234</p>
+                </td>
+            </tr>
+
+            <!-- ── Body ──────────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:#ffffff;padding:40px;">
+
+                    <!-- Greeting -->
+                    <p style="margin:0 0 24px;font-size:16px;color:#2d3748;">
+                        Hi <strong th:text="${organizer?.name ?: 'there'}">Organizer</strong>,
+                    </p>
+                    <p style="margin:0 0 32px;font-size:15px;color:#4a5568;line-height:1.6;">
+                        Great news — a new booking has just been confirmed for your event.
+                        Here's a summary below.
+                    </p>
+
+                    <!-- Event card -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#f7f8fc;border-radius:12px;
+                          border:1px solid #e2e8f0;margin-bottom:24px;">
+                        <tr>
+                            <td style="padding:20px 24px;">
+                                <p style="margin:0 0 4px;font-size:11px;font-weight:700;
+                                  letter-spacing:2px;color:#667eea;text-transform:uppercase;">
+                                    Event
+                                </p>
+                                <p style="margin:0;font-size:18px;font-weight:800;color:#1a1a2e;"
+                                   th:text="${event?.name ?: 'Your Event'}">Jazz Night at JNICC</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Buyer info card -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#f7f8fc;border-radius:12px;
+                          border:1px solid #e2e8f0;margin-bottom:24px;">
+                        <tr>
+                            <td style="padding:20px 24px 4px;">
+                                <p style="margin:0 0 16px;font-size:11px;font-weight:700;
+                                  letter-spacing:2px;color:#667eea;text-transform:uppercase;">
+                                    Buyer Details
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0 24px 20px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding:6px 0;border-bottom:1px solid #e2e8f0;">
+                                            <span style="font-size:13px;color:#718096;">Name</span>
+                                        </td>
+                                        <td style="padding:6px 0;border-bottom:1px solid #e2e8f0;text-align:right;">
+                                    <span style="font-size:13px;font-weight:600;color:#2d3748;"
+                                          th:text="${buyer?.name ?: '-'}">John Doe</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:6px 0;">
+                                            <span style="font-size:13px;color:#718096;">Email</span>
+                                        </td>
+                                        <td style="padding:6px 0;text-align:right;">
+                                    <span style="font-size:13px;font-weight:600;color:#2d3748;"
+                                          th:text="${buyer?.email ?: '-'}">john@example.com</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Booking summary card -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#f0fff4;border-radius:12px;
+                          border:1px solid #9ae6b4;margin-bottom:32px;">
+                        <tr>
+                            <td style="padding:20px 24px 4px;">
+                                <p style="margin:0 0 16px;font-size:11px;font-weight:700;
+                                  letter-spacing:2px;color:#276749;text-transform:uppercase;">
+                                    Booking Summary
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:0 24px 20px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding:6px 0;border-bottom:1px solid #c6f6d5;">
+                                            <span style="font-size:13px;color:#276749;">Tickets</span>
+                                        </td>
+                                        <td style="padding:6px 0;border-bottom:1px solid #c6f6d5;text-align:right;">
+                                    <span style="font-size:13px;font-weight:700;color:#276749;"
+                                          th:text="${booking?.ticketCount ?: 0}">2</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:6px 0;border-bottom:1px solid #c6f6d5;">
+                                            <span style="font-size:13px;color:#276749;">Total Amount</span>
+                                        </td>
+                                        <td style="padding:6px 0;border-bottom:1px solid #c6f6d5;text-align:right;">
+                                    <span style="font-size:14px;font-weight:800;color:#276749;">
+                                        TZS <span th:text="${booking?.totalAmount ?: '0.00'}">100,000</span>
+                                    </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:6px 0;">
+                                            <span style="font-size:13px;color:#276749;">Booked On</span>
+                                        </td>
+                                        <td style="padding:6px 0;text-align:right;">
+                                    <span style="font-size:13px;font-weight:600;color:#276749;"
+                                          th:text="${booking?.date ?: '-'}">Saturday, Feb 21, 2026</span>
+                                            &nbsp;
+                                            <span style="font-size:12px;color:#4a5568;"
+                                                  th:text="${booking?.time ?: ''}">10:30 AM</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <div style="text-align:center;margin-bottom:8px;">
+                        <a href="#"
+                           style="display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);
+                          color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;
+                          padding:14px 36px;border-radius:8px;letter-spacing:0.5px;">
+                            View Booking in Dashboard →
+                        </a>
+                    </div>
+
+                </td>
+            </tr>
+
+            <!-- ── Footer ────────────────────────────────────────────────────── -->
+            <tr>
+                <td style="background:#1a1a2e;border-radius:0 0 16px 16px;
+                   padding:24px 40px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:13px;font-weight:700;
+                      letter-spacing:2px;color:#667eea;text-transform:uppercase;">
+                        NEXGATE
+                    </p>
+                    <p style="margin:0;font-size:12px;color:#718096;">
+                        Event management platform · Tanzania
+                    </p>
+                </td>
+            </tr>
+
+        </table>
+    </td></tr>
+</table>
+
+</body>
+</html>
