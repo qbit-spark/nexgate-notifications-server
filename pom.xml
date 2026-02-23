@@ -133,6 +133,12 @@
             <version>3.5.3</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.xhtmlrenderer</groupId>
+            <artifactId>flying-saucer-pdf</artifactId>
+            <version>9.1.22</version>
+        </dependency>
+
 
         <!-- Spring Cloud Bootstrap (required for Vault) -->
         <dependency>

@@ -2,488 +2,351 @@ package org.qbitspark.nexgatenotificationserver.service.pdf;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
-import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
-import com.itextpdf.text.*;
-import com.itextpdf.text.pdf.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.EnumMap;
+import java.time.LocalDate;
+import java.time.format.TextStyle;
+import java.util.*;
+import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 
-/**
- * Generates Eventbrite-style ticket PDFs.
- *
- * One page per ticket. All tickets for a buyer are bundled into a single PDF.
- * QR code is generated from the JWT token string provided by NextGate.
- */
 @Slf4j
 @Service
 public class TicketPdfGenerator {
 
-    @Value("${app.frontend.url:https://nexgate.com}")
-    private String frontendUrl;
+    @Value("${app.logo.path:}")
+    private String logoPath;
 
-    // ── Brand colours ──────────────────────────────────────────────────────────
-    private static final BaseColor BRAND_PURPLE    = new BaseColor(102, 126, 234);   // #667eea
-    private static final BaseColor BRAND_DARK      = new BaseColor(26,  26,  46);    // #1a1a2e
-    private static final BaseColor LIGHT_GREY      = new BaseColor(245, 245, 247);   // #f5f5f7
-    private static final BaseColor MID_GREY        = new BaseColor(150, 150, 160);   // #9696a0
-    private static final BaseColor WHITE           = BaseColor.WHITE;
-    private static final BaseColor DIVIDER_COLOR   = new BaseColor(220, 220, 228);   // #dcdce4
-    private static final BaseColor SUCCESS_GREEN   = new BaseColor(76,  175,  80);   // #4caf50
-
-    // ── Fonts ──────────────────────────────────────────────────────────────────
-    private Font fontTitleLarge;
-    private Font fontTitleMedium;
-    private Font fontLabel;
-    private Font fontValue;
-    private Font fontSmall;
-    private Font fontBrand;
-    private Font fontTicketNumber;
-    private boolean fontsInitialized = false;
-
-    // ──────────────────────────────────────────────────────────────────────────
-    //  PUBLIC API
-    // ──────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Generate a bundled PDF containing one page per ticket.
-     * Used for the BUYER email attachment.
-     *
-     * @param eventData  the full data map from the notification event
-     * @param tickets    list of ticket maps (each ticket has attendee info + ticketId)
-     * @param qrCodes    Map&lt;ticketId, jwtTokenString&gt;
-     * @return PDF bytes
-     */
     public byte[] generateBundledPdf(
             Map<String, Object> eventData,
             List<Map<String, Object>> tickets,
-            Map<String, String> qrCodes) throws DocumentException, IOException, WriterException {
+            Map<String, String> qrCodes) throws Exception {
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A5, 0, 0, 0, 0);
-        PdfWriter writer = PdfWriter.getInstance(document, baos);
-        document.open();
-        initFonts();
-
+        StringBuilder pages = new StringBuilder();
         for (int i = 0; i < tickets.size(); i++) {
             Map<String, Object> ticket = tickets.get(i);
             String ticketId = str(ticket, "ticketId");
-            String jwtToken = qrCodes.getOrDefault(ticketId, ticketId);
-
-            if (i > 0) document.newPage();
-            renderTicketPage(writer, document, eventData, ticket, jwtToken, i + 1, tickets.size());
-            // Page 2 of each ticket — full QR page
-            document.newPage();
-            renderQrPage(writer, document, eventData, ticket, jwtToken);
+            String jwt      = qrCodes.getOrDefault(ticketId, ticketId);
+            String qrBase64 = generateQrBase64(jwt);
+            pages.append(buildTicketPage(eventData, ticket, qrBase64, i < tickets.size() - 1));
         }
 
-        document.close();
-        log.info("✅ Generated bundled PDF with {} ticket(s)", tickets.size());
-        return baos.toByteArray();
+        byte[] pdf = renderHtmlToPdf(wrapHtml(pages.toString()));
+        log.info("✅ Bundled PDF generated: {} page(s)", tickets.size());
+        return pdf;
     }
 
-    /**
-     * Generate a single-ticket PDF.
-     * Used for attendee email attachments.
-     *
-     * @param eventData  the full data map from the notification event
-     * @param ticket     the specific ticket map for this attendee
-     * @param jwtToken   JWT token string — used to generate the QR code
-     * @return PDF bytes
-     */
     public byte[] generateSingleTicketPdf(
             Map<String, Object> eventData,
             Map<String, Object> ticket,
-            String jwtToken) throws DocumentException, IOException, WriterException {
+            String jwtToken) throws Exception {
 
+        String qrBase64 = generateQrBase64(jwtToken);
+        String html     = wrapHtml(buildTicketPage(eventData, ticket, qrBase64, false));
+        byte[] pdf      = renderHtmlToPdf(html);
+        log.info("✅ Single ticket PDF generated: ticketId={}", str(ticket, "ticketId"));
+        return pdf;
+    }
+
+    private byte[] renderHtmlToPdf(String html) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A5, 0, 0, 0, 0);
-        PdfWriter writer = PdfWriter.getInstance(document, baos);
-        document.open();
-        initFonts();
-
-        renderTicketPage(writer, document, eventData, ticket, jwtToken, 1, 1);
-
-        // Page 2 — full-page QR code
-        document.newPage();
-        renderQrPage(writer, document, eventData, ticket, jwtToken);
-
-        document.close();
-        log.info("✅ Generated single ticket PDF for ticketId={}", str(ticket, "ticketId"));
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(baos);
         return baos.toByteArray();
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  TICKET PAGE RENDERER
-    // ──────────────────────────────────────────────────────────────────────────
+    private String buildTicketPage(Map<String, Object> eventData,
+                                   Map<String, Object> ticket,
+                                   String qrBase64,
+                                   boolean addPageBreak) {
 
-    private void renderTicketPage(
-            PdfWriter writer,
-            Document document,
-            Map<String, Object> eventData,
-            Map<String, Object> ticket,
-            String jwtToken,
-            int ticketIndex,
-            int totalTickets) throws DocumentException, IOException, WriterException {
-
-        PdfContentByte cb = writer.getDirectContent();
-
-        float pageW = document.getPageSize().getWidth();
-        float pageH = document.getPageSize().getHeight();
-
-        // ── 1. Dark header band ────────────────────────────────────────────────
-        float headerH = pageH * 0.30f;
-        cb.setColorFill(BRAND_DARK);
-        cb.rectangle(0, pageH - headerH, pageW, headerH);
-        cb.fill();
-
-        // Accent stripe at very top
-        cb.setColorFill(BRAND_PURPLE);
-        cb.rectangle(0, pageH - 6, pageW, 6);
-        cb.fill();
-
-        // "NEXGATE" brand top-left
-        ColumnText.showTextAligned(cb, Element.ALIGN_LEFT,
-                new Phrase("NEXGATE", fontBrand),
-                24, pageH - 28, 0);
-
-        // Ticket counter top-right  e.g. "2 / 5"
-        if (totalTickets > 1) {
-            ColumnText.showTextAligned(cb, Element.ALIGN_RIGHT,
-                    new Phrase(ticketIndex + " / " + totalTickets, fontSmall),
-                    pageW - 24, pageH - 28, 0);
-        }
-
-        // Event name — large
-        Map<String, Object> event = castMap(eventData.get("event"));
-        String eventName = event != null ? str(event, "name") : "Event";
-        String eventDate = event != null ? str(event, "date") : "";
-        String eventTime = event != null ? str(event, "time") : "";
-        String eventVenue = event != null ? str(event, "venue") : "";
-
-        // Event name (may be long — wrap within header)
-        float textY = pageH - 55;
-        Font bigEventFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, WHITE);
-        PdfPTable headerTable = new PdfPTable(1);
-        headerTable.setTotalWidth(pageW - 48);
-        PdfPCell nameCell = new PdfPCell(new Phrase(eventName, bigEventFont));
-        nameCell.setBorder(Rectangle.NO_BORDER);
-        nameCell.setBackgroundColor(BRAND_DARK);
-        nameCell.setPadding(0);
-        headerTable.addCell(nameCell);
-        headerTable.writeSelectedRows(0, -1, 24, textY, cb);
-
-        // Date / time line
-        String dateTime = eventDate + (eventTime.isBlank() ? "" : "  •  " + eventTime);
-        Font dtFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_LEFT,
-                new Phrase("📅  " + dateTime, dtFont),
-                24, pageH - headerH + 38, 0);
-
-        // Venue line
-        Font venueFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_LEFT,
-                new Phrase("📍  " + eventVenue, venueFont),
-                24, pageH - headerH + 20, 0);
-
-        // ── 2. White body ──────────────────────────────────────────────────────
-        float bodyTop   = pageH - headerH;
-        float bodyH     = pageH * 0.48f;
-
-        cb.setColorFill(WHITE);
-        cb.rectangle(0, bodyTop - bodyH, pageW, bodyH);
-        cb.fill();
-
-        // Attendee info
+        Map<String, Object> event    = castMap(eventData.get("event"));
         Map<String, Object> attendee = castMap(ticket.get("attendee"));
-        String attendeeName  = attendee != null ? str(attendee, "name")  : "—";
-        String ticketType      = cleanTicketType(str(ticket, "ticketType"));
-        String ticketId        = str(ticket, "ticketId");
-        String ticketSeries    = str(ticket, "series");
-        // Prefer series number (e.g. "VIPP-0003") over raw UUID
-        String ticketIdDisplay = !ticketSeries.isBlank() ? ticketSeries
-                : (ticketId.length() > 20 ? ticketId.substring(0, 20) + "…" : ticketId);
-        String bookingRef      = resolveBookingRef(eventData);
+        Map<String, Object> booking  = castMap(eventData.get("booking"));
 
-        float infoY = bodyTop - 20;
+        String eventName    = event    != null ? str(event,    "name")       : "Event";
+        String eventVenue   = event    != null ? str(event,    "venue")      : "";
+        String attendeeName = attendee != null ? str(attendee, "name")       : "—";
+        String series       = str(ticket, "series");
 
-        // ATTENDEE label + value
-        drawLabelValue(cb, "ATTENDEE", attendeeName,
-                24, pageW / 2 - 12, infoY, fontLabel, fontTitleMedium);
-
-        // TICKET TYPE label + value
-        drawLabelValue(cb, "TICKET TYPE", ticketType,
-                pageW / 2 + 12, pageW - 24, infoY, fontLabel, fontValue);
-
-        // Divider
-        float divY = infoY - 52;
-        cb.setColorStroke(DIVIDER_COLOR);
-        cb.setLineWidth(0.5f);
-        cb.moveTo(24, divY);
-        cb.lineTo(pageW - 24, divY);
-        cb.stroke();
-
-        // TICKET # label + value
-        drawLabelValue(cb, "TICKET #", ticketIdDisplay,
-                24, pageW / 2 - 12, divY - 10, fontLabel, fontTicketNumber);
-
-        // BOOKING REF label + value
-        drawLabelValue(cb, "BOOKING REF", bookingRef,
-                pageW / 2 + 12, pageW - 24, divY - 10, fontLabel, fontValue);
-
-        // ── 3. Perforated tear-line ────────────────────────────────────────────
-        float tearY = bodyTop - bodyH;
-        drawDashedLine(cb, 0, tearY, pageW, tearY);
-
-        // Scissors icon hint
-        Font scissorsFont = new Font(Font.FontFamily.HELVETICA, 8, Font.NORMAL, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase("✂", scissorsFont),
-                pageW / 2, tearY - 2, 0);
-
-        // ── 4. QR section (bottom stub) ────────────────────────────────────────
-        float stubH = pageH - headerH - bodyH;
-
-        cb.setColorFill(LIGHT_GREY);
-        cb.rectangle(0, 0, pageW, stubH);
-        cb.fill();
-
-        // Stub: just show "SEE NEXT PAGE" — full QR is on page 2
-        Font scanFont = new Font(Font.FontFamily.HELVETICA, 7, Font.BOLD, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase("▶  QR CODE ON NEXT PAGE", scanFont),
-                pageW / 2, stubH / 2 + 4, 0);
-        Font scanFont2 = new Font(Font.FontFamily.HELVETICA, 6, Font.NORMAL, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase("SCAN TO VERIFY AT ENTRANCE", scanFont2),
-                pageW / 2, stubH / 2 - 8, 0);
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    //  QR FULL PAGE
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private void renderQrPage(
-            PdfWriter writer,
-            Document document,
-            Map<String, Object> eventData,
-            Map<String, Object> ticket,
-            String jwtToken) throws DocumentException, IOException {
-
-        PdfContentByte cb = writer.getDirectContent();
-        float pageW = document.getPageSize().getWidth();
-        float pageH = document.getPageSize().getHeight();
-
-        // ── Background: dark top band + white body ────────────────────────────
-        float topBandH = 60f;
-        cb.setColorFill(BRAND_DARK);
-        cb.rectangle(0, pageH - topBandH, pageW, topBandH);
-        cb.fill();
-
-        // Purple accent stripe
-        cb.setColorFill(BRAND_PURPLE);
-        cb.rectangle(0, pageH - 5, pageW, 5);
-        cb.fill();
-
-        // White body
-        cb.setColorFill(WHITE);
-        cb.rectangle(0, 0, pageW, pageH - topBandH);
-        cb.fill();
-
-        // Brand label in top band
-        ColumnText.showTextAligned(cb, Element.ALIGN_LEFT,
-                new Phrase("NEXGATE", fontBrand),
-                24, pageH - 36, 0);
-
-        // "YOUR TICKET" label top-right
-        Font qrPageLabel = new Font(Font.FontFamily.HELVETICA, 7, Font.BOLD, BRAND_PURPLE);
-        ColumnText.showTextAligned(cb, Element.ALIGN_RIGHT,
-                new Phrase("SCAN TO ENTER", qrPageLabel),
-                pageW - 24, pageH - 36, 0);
-
-        // ── Event name ────────────────────────────────────────────────────────
-        Map<String, Object> event = castMap(eventData.get("event"));
-        String eventName = event != null ? str(event, "name") : "Event";
-
-        Font eventNameFont = new Font(Font.FontFamily.HELVETICA, 13, Font.BOLD, BRAND_DARK);
-        ColumnText ct = new ColumnText(cb);
-        ct.setSimpleColumn(24, pageH - topBandH - 40, pageW - 24, pageH - topBandH - 10);
-        ct.addText(new Phrase(eventName, eventNameFont));
-        ct.go();
-
-        // Attendee name + ticket type under event name
-        Map<String, Object> attendee = castMap(ticket.get("attendee"));
-        String attendeeName    = attendee != null ? str(attendee, "name") : "—";
-        String ticketType      = cleanTicketType(str(ticket, "ticketType"));
-        String series          = str(ticket, "series");
-        String seriesDisplay   = !series.isBlank() ? series : str(ticket, "ticketId");
-
-        Font attendeeFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, MID_GREY);
-        ColumnText.showTextAligned(cb, Element.ALIGN_LEFT,
-                new Phrase(attendeeName + "  ·  " + ticketType, attendeeFont),
-                24, pageH - topBandH - 52, 0);
-
-        // ── Divider ───────────────────────────────────────────────────────────
-        cb.setColorStroke(DIVIDER_COLOR);
-        cb.setLineWidth(0.5f);
-        cb.moveTo(24, pageH - topBandH - 62);
-        cb.lineTo(pageW - 24, pageH - topBandH - 62);
-        cb.stroke();
-
-        // ── Big QR code centred on the page ───────────────────────────────────
-        byte[] qrBytes = generateQrBytes(jwtToken, 400);
-        if (qrBytes != null) {
-            Image qrImage = Image.getInstance(qrBytes);
-            float qrSize  = Math.min(pageW, pageH) * 0.82f;
-            qrImage.scaleAbsolute(qrSize, qrSize);
-            float qrX = (pageW - qrSize) / 2f;
-            float qrY = (pageH * 0.5f) - (qrSize / 2f) - 10;
-            qrImage.setAbsolutePosition(qrX, qrY);
-            cb.addImage(qrImage);
+        // bookingRef — check multiple possible locations
+        String bookingRef = "";
+        if (booking != null && !str(booking, "bookingRef").isBlank()) {
+            bookingRef = str(booking, "bookingRef");
+        } else if (!str(ticket, "bookingRef").isBlank()) {
+            bookingRef = str(ticket, "bookingRef");
+        } else if (!str(eventData, "bookingRef").isBlank()) {
+            bookingRef = str(eventData, "bookingRef");
         }
 
-        // ── Booking ref + Ticket series side by side below QR ───────────────
-        String bookingRef    = resolveBookingRef(eventData);
-        Font labelFont = new Font(Font.FontFamily.HELVETICA, 7,  Font.BOLD,   MID_GREY);
-        Font refFont   = new Font(Font.FontFamily.COURIER,   11, Font.BOLD,   BRAND_DARK);
-        Font serFont   = new Font(Font.FontFamily.COURIER,   11, Font.BOLD,   BRAND_PURPLE);
+        String shortRef     = bookingRef.contains("-")
+                ? bookingRef.substring(bookingRef.lastIndexOf("-") + 1)
+                : bookingRef;
+        String ticketNumber = shortRef.isBlank() ? series : shortRef + "-" + series;
 
-        float bottomY  = 38;
-        float leftCol  = pageW * 0.25f;
-        float rightCol = pageW * 0.75f;
+        String logoTag      = buildLogoTag();
+        String dateTimeHtml = buildDateTimeHtml(event);
+        String pageBreakDiv = addPageBreak ? "<div class=\"page-break\"></div>" : "";
 
-        // Labels
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase("BOOKING REF", labelFont), leftCol, bottomY, 0);
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase("TICKET SERIES", labelFont), rightCol, bottomY, 0);
-
-        // Values
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase(bookingRef, refFont), leftCol, bottomY - 14, 0);
-        ColumnText.showTextAligned(cb, Element.ALIGN_CENTER,
-                new Phrase(seriesDisplay, serFont), rightCol, bottomY - 14, 0);
-
-        // Thin divider between the two columns
-        cb.setColorStroke(DIVIDER_COLOR);
-        cb.setLineWidth(0.5f);
-        cb.moveTo(pageW / 2, bottomY + 8);
-        cb.lineTo(pageW / 2, bottomY - 18);
-        cb.stroke();
+        return String.format("""
+            <div class="ticket">
+                <div class="left-panel">
+                    <div class="top-row">
+                        <div class="brand">NexGate</div>
+                        <div class="badge-cell"><span class="badge">ATTENDEE</span></div>
+                    </div>
+                    <div class="divider">&#160;</div>
+                    <div class="event-name">%s</div>
+                    <div class="divider">&#160;</div>
+                    <div class="field-grid">
+                        <div class="field-row">
+                            <div class="field-cell">
+                                <div class="field-label">Name Of Attendee:</div>
+                                <div class="field-value">%s</div>
+                            </div>
+                            <div class="field-cell">
+                                <div class="field-label">Seat:</div>
+                                <div class="field-value">%s</div>
+                            </div>
+                        </div>
+                        %s
+                        <div class="field-row">
+                            <div class="field-cell-full">
+                                <div class="field-label">Venue:</div>
+                                <div class="field-value">%s</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="divider-bottom">&#160;</div>
+                    <div class="ticket-num-label">Ticket Number:</div>
+                    <div class="ticket-num-value">%s</div>
+                </div>
+                <div class="right-panel">
+                    <div class="qr-card">
+                        <div class="qr-wrapper">
+                            <img src="data:image/png;base64,%s" alt="QR Code"/>
+                            <div class="qr-logo">%s</div>
+                        </div>
+                    </div>
+                    <div class="scan-label">SCAN TO VERIFY</div>
+                </div>
+            </div>
+            %s
+            """,
+                eventName.toUpperCase(),
+                attendeeName, series,
+                dateTimeHtml,
+                eventVenue,
+                ticketNumber,
+                qrBase64,
+                logoTag,
+                pageBreakDiv
+        );
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  HELPERS
-    // ──────────────────────────────────────────────────────────────────────────
+    private String buildDateTimeHtml(Map<String, Object> event) {
+        if (event == null) return "";
 
-    private void drawLabelValue(PdfContentByte cb,
-                                String label, String value,
-                                float x1, float x2, float topY,
-                                Font lFont, Font vFont) throws DocumentException {
-        ColumnText ct = new ColumnText(cb);
-        ct.setSimpleColumn(x1, topY - 40, x2, topY);
-        ct.addText(new Phrase(label + "\n", lFont));
-        ct.addText(new Phrase(value, vFont));
-        ct.go();
-    }
+        String scheduleType = str(event, "scheduleType");
+        String dates        = str(event, "dates");
+        String times        = str(event, "times");
+        String date         = str(event, "date");
+        String time         = str(event, "time");
 
-    private void drawDashedLine(PdfContentByte cb,
-                                float x1, float y1,
-                                float x2, float y2) {
-        cb.saveState();
-        cb.setColorStroke(MID_GREY);
-        cb.setLineWidth(0.8f);
-        cb.setLineDash(4f, 4f, 0f);
-        cb.moveTo(x1, y1);
-        cb.lineTo(x2, y2);
-        cb.stroke();
-        cb.restoreState();
-    }
-
-    private byte[] generateQrBytes(String content, int size) {
-        if (content == null || content.isBlank()) {
-            log.error("❌ Cannot generate QR code — content is empty/null");
-            return null;
+        if ("MULTI".equals(scheduleType) && !dates.isBlank()) {
+            String[] dateArr = dates.split("\\|");
+            String[] timeArr = times.isBlank() ? new String[]{} : times.split("\\|");
+            StringBuilder sb = new StringBuilder();
+            sb.append("""
+                <div class="field-row">
+                    <div class="field-cell">
+                        <div class="field-label">Date:</div>
+                """);
+            for (String d : dateArr) {
+                sb.append(String.format(
+                        "<div class=\"field-value schedule-val\">%s</div>", formatDate(d.trim())));
+            }
+            sb.append("</div><div class=\"field-cell\"><div class=\"field-label\">Time:</div>");
+            for (int i = 0; i < dateArr.length; i++) {
+                String t = (timeArr.length > i) ? timeArr[i]
+                        : (timeArr.length > 0  ? timeArr[timeArr.length - 1] : "—");
+                sb.append(String.format(
+                        "<div class=\"field-value schedule-val\">%s</div>", t.trim()));
+            }
+            sb.append("</div></div>");
+            return sb.toString();
         }
-        log.info("🔲 Generating QR code: contentLength={}, size={}px", content.length(), size);
+
+        if ("RANGE".equals(scheduleType) && !dates.isBlank()) {
+            String[] parts = dates.split("–");
+            String formatted = parts.length == 2
+                    ? formatDate(parts[0].trim()) + " – " + formatDate(parts[1].trim())
+                    : formatDate(dates);
+            String formattedTime = !times.isBlank() ? times : (time.isBlank() ? "—" : time);
+            return String.format("""
+                <div class="field-row">
+                    <div class="field-cell">
+                        <div class="field-label">Date:</div>
+                        <div class="field-value">%s</div>
+                    </div>
+                    <div class="field-cell">
+                        <div class="field-label">Time:</div>
+                        <div class="field-value">%s</div>
+                    </div>
+                </div>
+                """, formatted, formattedTime);
+        }
+
+        String formattedDate = !dates.isBlank() ? formatDate(dates) : formatDate(date);
+        String formattedTime = !times.isBlank() ? times : (time.isBlank() ? "—" : time);
+
+        return String.format("""
+            <div class="field-row">
+                <div class="field-cell">
+                    <div class="field-label">Date:</div>
+                    <div class="field-value">%s</div>
+                </div>
+                <div class="field-cell">
+                    <div class="field-label">Time:</div>
+                    <div class="field-value">%s</div>
+                </div>
+            </div>
+            """, formattedDate, formattedTime);
+    }
+
+    private String buildLogoTag() {
+        if (logoPath != null && !logoPath.isBlank()) {
+            return String.format("<img src=\"file://%s\" alt=\"logo\"/>", logoPath);
+        }
+        return "<span style=\"color:#F97316;font-size:8pt;font-weight:bold;\">N</span>";
+    }
+
+    private String wrapHtml(String body) {
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+            <html xmlns="http://www.w3.org/1999/xhtml">
+            <head>
+                <meta charset="UTF-8"/>
+                <style>
+                    @page { size:660pt 340pt; margin:0; background-color:#12131a; }
+                    * { margin:0; padding:0; box-sizing:border-box; font-family:Helvetica,Arial,sans-serif; }
+                    body { background:#12131a; padding:0; }
+                    .page-break { page-break-after:always; }
+                    .ticket { width:660pt; height:340pt; display:table; border-radius:16pt; overflow:hidden; }
+                    .left-panel {
+                        display:table-cell; width:370pt; background-color:#F97316;
+                        vertical-align:top; padding:24pt 26pt; border-radius:16pt 0 0 16pt;
+                    }
+                    .right-panel {
+                        display:table-cell; width:290pt; background-color:#ffffff;
+                        vertical-align:middle; text-align:center; padding:20pt;
+                        border-radius:0 16pt 16pt 0;
+                    }
+                    .top-row { display:table; width:100%; margin-bottom:6pt; }
+                    .brand { display:table-cell; vertical-align:middle; color:#ffffff; font-size:12pt; font-weight:bold; }
+                    .badge-cell { display:table-cell; vertical-align:middle; text-align:right; }
+                    .badge { display:inline-block; background-color:#ffffff; color:#F97316; font-size:7pt; font-weight:bold; padding:4pt 14pt; border-radius:20pt; }
+                    .event-name { color:#ffffff; font-size:15pt; font-weight:bold; line-height:1.25; margin-top:6pt; margin-bottom:10pt; }
+                    .divider { width:100%; height:0.8pt; background-color:rgba(255,255,255,0.4); margin-bottom:12pt; font-size:0; line-height:0; }
+                    .divider-bottom { width:100%; height:0.8pt; background-color:rgba(255,255,255,0.4); margin-bottom:10pt; font-size:0; line-height:0; }
+                    .field-grid { display:table; width:100%; }
+                    .field-row { display:table-row; }
+                    .field-cell { display:table-cell; width:50%; padding-bottom:10pt; padding-right:20pt; vertical-align:top; }
+                    .field-cell-full { display:block; width:100%; padding-bottom:10pt; }
+                    .field-label { color:#ffffff; font-size:7.5pt; margin-bottom:2pt; }
+                    .field-value { color:#ffffff; font-size:11pt; font-weight:bold; }
+                    .schedule-val { margin-bottom:3pt; font-size:10.5pt; }
+                    .ticket-num-label { color:#ffffff; font-size:7.5pt; margin-bottom:3pt; }
+                    .ticket-num-value { color:#ffffff; font-size:10pt; font-weight:bold; font-family:Courier,monospace; letter-spacing:0.5pt; }
+                    .qr-card { display:inline-block; border:1pt solid #E0E0E0; border-radius:12pt; padding:14pt; background:#ffffff; }
+                    .qr-wrapper { position:relative; display:inline-block; }
+                    .qr-card img { width:195pt; height:195pt; display:block; }
+                    .qr-logo { position:absolute; top:50%; left:50%; width:38pt; height:38pt; margin-top:-19pt; margin-left:-19pt; background-color:#ffffff; border-radius:8pt; border:2pt solid #F97316; padding:4pt; text-align:center; }
+                    .qr-logo img { width:26pt; height:26pt; display:block; }
+                    .scan-label { color:#999999; font-size:7.5pt; font-weight:bold; margin-top:10pt; letter-spacing:1.5pt; }
+                </style>
+            </head>
+            <body>
+            """ + body + """
+            </body>
+            </html>
+            """;
+    }
+
+    private String generateQrBase64(String content) {
+        if (content == null || content.isBlank()) return "";
         try {
             Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
             hints.put(EncodeHintType.MARGIN, 1);
-
-            QRCodeWriter writer = new QRCodeWriter();
-            BitMatrix matrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints);
-
-            BufferedImage image = MatrixToImageWriter.toBufferedImage(matrix);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "PNG", baos);
-            log.info("✅ QR code generated: {} bytes", baos.size());
-            return baos.toByteArray();
-
-        } catch (WriterException | IOException e) {
-            log.error("❌ Failed to generate QR code: {}", e.getMessage());
-            return null;
+            BitMatrix matrix = new QRCodeWriter()
+                    .encode(content, BarcodeFormat.QR_CODE, 420, 420, hints);
+            BufferedImage img = MatrixToImageWriter.toBufferedImage(matrix);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(img, "PNG", out);
+            return Base64.getEncoder().encodeToString(out.toByteArray());
+        } catch (Exception e) {
+            log.error("QR generation failed: {}", e.getMessage());
+            return "";
         }
     }
 
-    /**
-     * Strip trailing garbage like "- true", "- IN_PERSON" that can appear
-     * if attendanceMode or boolean flags get concatenated into the ticket name.
-     */
-    private String cleanTicketType(String raw) {
+    private String formatDate(String raw) {
         if (raw == null || raw.isBlank()) return "—";
-        // Remove trailing "- <word>" pattern (case-insensitive)
-        return raw.replaceAll("\\s*-\\s*\\w+$", "").trim();
+        try {
+            LocalDate d   = LocalDate.parse(raw.trim());
+            int       day = d.getDayOfMonth();
+            String    dow = d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            String    mon = d.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            return dow + ", " + day + daySuffix(day) + " " + mon + " " + d.getYear();
+        } catch (Exception e) {
+            // already formatted — try to shorten day and month names
+            return raw
+                    .replaceAll("(?i)Monday",    "Mon").replaceAll("(?i)Tuesday",   "Tue")
+                    .replaceAll("(?i)Wednesday", "Wed").replaceAll("(?i)Thursday",  "Thu")
+                    .replaceAll("(?i)Friday",    "Fri").replaceAll("(?i)Saturday",  "Sat")
+                    .replaceAll("(?i)Sunday",    "Sun")
+                    .replaceAll("(?i)January",   "Jan").replaceAll("(?i)February",  "Feb")
+                    .replaceAll("(?i)March",     "Mar").replaceAll("(?i)April",     "Apr")
+                    .replaceAll("(?i)May",       "May").replaceAll("(?i)June",      "Jun")
+                    .replaceAll("(?i)July",      "Jul").replaceAll("(?i)August",    "Aug")
+                    .replaceAll("(?i)September", "Sep").replaceAll("(?i)October",   "Oct")
+                    .replaceAll("(?i)November",  "Nov").replaceAll("(?i)December",  "Dec");
+        }
+    }
+
+    private String daySuffix(int day) {
+        if (day >= 11 && day <= 13) return "th";
+        return switch (day % 10) {
+            case 1  -> "st";
+            case 2  -> "nd";
+            case 3  -> "rd";
+            default -> "th";
+        };
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> castMap(Object o) {
-        if (o instanceof Map) return (Map<String, Object>) o;
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> castList(Object o) {
-        if (o instanceof List) return (List<Map<String, Object>>) o;
-        return List.of();
+        return (o instanceof Map) ? (Map<String, Object>) o : null;
     }
 
     private String str(Map<String, Object> map, String key) {
         if (map == null) return "";
         Object v = map.get(key);
         return v != null ? v.toString() : "";
-    }
-
-    private String resolveBookingRef(Map<String, Object> eventData) {
-        Map<String, Object> booking = castMap(eventData.get("booking"));
-        if (booking != null) {
-            String id = str(booking, "id");
-            if (!id.isBlank()) return id;
-        }
-        return "—";
-    }
-
-    private void initFonts() {
-        if (fontsInitialized) return;
-        fontTitleLarge   = new Font(Font.FontFamily.HELVETICA, 22, Font.BOLD,   BRAND_DARK);
-        fontTitleMedium  = new Font(Font.FontFamily.HELVETICA, 15, Font.BOLD,   BRAND_DARK);
-        fontLabel        = new Font(Font.FontFamily.HELVETICA,  7, Font.BOLD,   MID_GREY);
-        fontValue        = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD,   BRAND_DARK);
-        fontSmall        = new Font(Font.FontFamily.HELVETICA,  8, Font.NORMAL, WHITE);
-        fontBrand        = new Font(Font.FontFamily.HELVETICA, 11, Font.BOLD,   WHITE);
-        fontTicketNumber = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD,   BRAND_PURPLE);
-        fontsInitialized = true;
     }
 }
