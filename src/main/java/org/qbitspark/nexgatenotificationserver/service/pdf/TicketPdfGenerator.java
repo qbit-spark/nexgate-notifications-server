@@ -7,336 +7,273 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.xhtmlrenderer.pdf.ITextRenderer;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.format.TextStyle;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.Base64;
-import java.util.List;
 
+@Component
 @Slf4j
-@Service
 public class TicketPdfGenerator {
 
-    @Value("${app.logo.path:}")
-    private String logoPath;
+    @Value("${app.ticket.svg-template:templates/ticket-template.svg}")
+    private String svgTemplatePath;
 
-    public byte[] generateBundledPdf(
-            Map<String, Object> eventData,
-            List<Map<String, Object>> tickets,
-            Map<String, String> qrCodes) throws Exception {
-
-        StringBuilder pages = new StringBuilder();
-        for (int i = 0; i < tickets.size(); i++) {
-            Map<String, Object> ticket = tickets.get(i);
-            String ticketId = str(ticket, "ticketId");
-            String jwt      = qrCodes.getOrDefault(ticketId, ticketId);
-            String qrBase64 = generateQrBase64(jwt);
-            pages.append(buildTicketPage(eventData, ticket, qrBase64, i < tickets.size() - 1));
-        }
-
-        byte[] pdf = renderHtmlToPdf(wrapHtml(pages.toString()));
-        log.info("✅ Bundled PDF generated: {} page(s)", tickets.size());
-        return pdf;
-    }
+    // High-res render — same as main backend, keeps PDF sharp when zoomed
+    private static final float CROP_X   = 60f;
+    private static final float CROP_Y   = 400f;
+    private static final float RENDER_W = 2520f;
+    private static final float RENDER_H = 1460f;
+    private static final int   QR_SIZE  = 200;
 
     public byte[] generateSingleTicketPdf(
             Map<String, Object> eventData,
             Map<String, Object> ticket,
             String jwtToken) throws Exception {
 
-        String qrBase64 = generateQrBase64(jwtToken);
-        String html     = wrapHtml(buildTicketPage(eventData, ticket, qrBase64, false));
-        byte[] pdf      = renderHtmlToPdf(html);
-        log.info("✅ Single ticket PDF generated: ticketId={}", str(ticket, "ticketId"));
-        return pdf;
+        String svgTemplate = loadSvgTemplate();
+        String filledSvg   = buildSvg(svgTemplate, eventData, ticket, jwtToken);
+        return svgToPdfBytes(filledSvg);
     }
 
-    private byte[] renderHtmlToPdf(String html) throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ITextRenderer renderer = new ITextRenderer();
-        renderer.setDocumentFromString(html);
-        renderer.layout();
-        renderer.createPDF(baos);
-        return baos.toByteArray();
+    private String loadSvgTemplate() throws IOException {
+        ClassPathResource resource = new ClassPathResource(svgTemplatePath);
+        try (InputStream is = resource.getInputStream()) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
-    private String buildTicketPage(Map<String, Object> eventData,
-                                   Map<String, Object> ticket,
-                                   String qrBase64,
-                                   boolean addPageBreak) {
+    @SuppressWarnings("unchecked")
+    private String buildSvg(String template,
+                            Map<String, Object> eventData,
+                            Map<String, Object> ticket,
+                            String jwtToken) {
 
+        // Extract nested sub-maps from the notification payload
         Map<String, Object> event    = castMap(eventData.get("event"));
-        Map<String, Object> attendee = castMap(ticket.get("attendee"));
         Map<String, Object> booking  = castMap(eventData.get("booking"));
+        Map<String, Object> attendee = castMap(ticket.get("attendee"));
 
-        String eventName    = event    != null ? str(event,    "name")       : "Event";
-        String eventVenue   = event    != null ? str(event,    "venue")      : "";
-        String attendeeName = attendee != null ? str(attendee, "name")       : "—";
-        String series       = str(ticket, "series");
+        // Event title
+        String eventTitle = trimWithEllipsis(event != null ? str(event, "name") : "Event", 35);
 
-        // bookingRef — check multiple possible locations
-        String bookingRef = "";
-        if (booking != null && !str(booking, "bookingRef").isBlank()) {
-            bookingRef = str(booking, "bookingRef");
-        } else if (!str(ticket, "bookingRef").isBlank()) {
-            bookingRef = str(ticket, "bookingRef");
-        } else if (!str(eventData, "bookingRef").isBlank()) {
-            bookingRef = str(eventData, "bookingRef");
-        }
+        // Attendee name
+        String attendeeName = attendee != null ? str(attendee, "name") : "\u2014";
+        if (attendeeName.isBlank()) attendeeName = "\u2014";
 
-        String shortRef     = bookingRef.contains("-")
-                ? bookingRef.substring(bookingRef.lastIndexOf("-") + 1)
-                : bookingRef;
-        String ticketNumber = shortRef.isBlank() ? series : shortRef + "-" + series;
+        // Seat / series
+        String series = str(ticket, "series");
+        if (series.isBlank()) series = str(ticket, "ticketType");
 
-        String logoTag      = buildLogoTag();
-        String dateTimeHtml = buildDateTimeHtml(event);
-        String pageBreakDiv = addPageBreak ? "<div class=\"page-break\"></div>" : "";
-
-        return String.format("""
-            <div class="ticket">
-                <div class="left-panel">
-                    <div class="top-row">
-                        <div class="brand">NexGate</div>
-                        <div class="badge-cell"><span class="badge">ATTENDEE</span></div>
-                    </div>
-                    <div class="divider">&#160;</div>
-                    <div class="event-name">%s</div>
-                    <div class="divider">&#160;</div>
-                    <div class="field-grid">
-                        <div class="field-row">
-                            <div class="field-cell">
-                                <div class="field-label">Name Of Attendee:</div>
-                                <div class="field-value">%s</div>
-                            </div>
-                            <div class="field-cell">
-                                <div class="field-label">Seat:</div>
-                                <div class="field-value">%s</div>
-                            </div>
-                        </div>
-                        %s
-                        <div class="field-row">
-                            <div class="field-cell-full">
-                                <div class="field-label">Venue:</div>
-                                <div class="field-value">%s</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="divider-bottom">&#160;</div>
-                    <div class="ticket-num-label">Ticket Number:</div>
-                    <div class="ticket-num-value">%s</div>
-                </div>
-                <div class="right-panel">
-                    <div class="qr-card">
-                        <div class="qr-wrapper">
-                            <img src="data:image/png;base64,%s" alt="QR Code"/>
-                            <div class="qr-logo">%s</div>
-                        </div>
-                    </div>
-                    <div class="scan-label">SCAN TO VERIFY</div>
-                </div>
-            </div>
-            %s
-            """,
-                eventName.toUpperCase(),
-                attendeeName, series,
-                dateTimeHtml,
-                eventVenue,
-                ticketNumber,
-                qrBase64,
-                logoTag,
-                pageBreakDiv
-        );
-    }
-
-    private String buildDateTimeHtml(Map<String, Object> event) {
-        if (event == null) return "";
-
-        String scheduleType = str(event, "scheduleType");
-        String dates        = str(event, "dates");
-        String times        = str(event, "times");
-        String date         = str(event, "date");
-        String time         = str(event, "time");
-
-        if ("MULTI".equals(scheduleType) && !dates.isBlank()) {
-            String[] dateArr = dates.split("\\|");
-            String[] timeArr = times.isBlank() ? new String[]{} : times.split("\\|");
-            StringBuilder sb = new StringBuilder();
-            sb.append("""
-                <div class="field-row">
-                    <div class="field-cell">
-                        <div class="field-label">Date:</div>
-                """);
-            for (String d : dateArr) {
-                sb.append(String.format(
-                        "<div class=\"field-value schedule-val\">%s</div>", formatDate(d.trim())));
+        // Date range + time — formatted as "20th Feb, 2026" (same as main backend)
+        String dateRange;
+        String eventTime;
+        if (event != null) {
+            String scheduleType = str(event, "scheduleType");
+            if ("RANGE".equals(scheduleType)) {
+                String dates = str(event, "dates");
+                String[] parts = dates.split("[\u2013-]", 2);
+                dateRange = parts.length == 2
+                        ? formatDateRange(parts[0].trim(), parts[1].trim())
+                        : formatSingleDate(dates.trim());
+            } else {
+                String rawDate = str(event, "date");
+                if (rawDate.isBlank()) {
+                    String dates = str(event, "dates");
+                    rawDate = dates.contains("|") ? dates.split("\\|")[0].trim() : dates.trim();
+                }
+                dateRange = formatSingleDate(rawDate);
             }
-            sb.append("</div><div class=\"field-cell\"><div class=\"field-label\">Time:</div>");
-            for (int i = 0; i < dateArr.length; i++) {
-                String t = (timeArr.length > i) ? timeArr[i]
-                        : (timeArr.length > 0  ? timeArr[timeArr.length - 1] : "—");
-                sb.append(String.format(
-                        "<div class=\"field-value schedule-val\">%s</div>", t.trim()));
+            eventTime = str(event, "time");
+            if (eventTime.isBlank()) {
+                String times = str(event, "times");
+                if (!times.isBlank()) eventTime = times.split("\\|")[0].trim();
             }
-            sb.append("</div></div>");
-            return sb.toString();
+        } else {
+            dateRange = "\u2014";
+            eventTime = "\u2014";
         }
 
-        if ("RANGE".equals(scheduleType) && !dates.isBlank()) {
-            String[] parts = dates.split("–");
-            String formatted = parts.length == 2
-                    ? formatDate(parts[0].trim()) + " – " + formatDate(parts[1].trim())
-                    : formatDate(dates);
-            String formattedTime = !times.isBlank() ? times : (time.isBlank() ? "—" : time);
-            return String.format("""
-                <div class="field-row">
-                    <div class="field-cell">
-                        <div class="field-label">Date:</div>
-                        <div class="field-value">%s</div>
-                    </div>
-                    <div class="field-cell">
-                        <div class="field-label">Time:</div>
-                        <div class="field-value">%s</div>
-                    </div>
-                </div>
-                """, formatted, formattedTime);
+        // Venue
+        String venue = trimWithEllipsis(event != null ? str(event, "venue") : "\u2014", 40);
+
+        // Ticket number — use what the main backend already set on the ticket entity
+        String ticketNumber = str(ticket, "ticketNumber");
+        if (ticketNumber.isBlank()) {
+            // fallback: build from bookingRef + series
+            String bookingRef = booking != null ? str(booking, "bookingRef") : "";
+            if (bookingRef.isBlank() && booking != null) bookingRef = str(booking, "id");
+            if (bookingRef.isBlank()) bookingRef = str(ticket, "bookingRef");
+            String shortRef = bookingRef.contains("-")
+                    ? bookingRef.substring(bookingRef.lastIndexOf("-") + 1)
+                    : bookingRef;
+            ticketNumber = shortRef.isBlank() ? series : shortRef + "-" + series;
         }
 
-        String formattedDate = !dates.isBlank() ? formatDate(dates) : formatDate(date);
-        String formattedTime = !times.isBlank() ? times : (time.isBlank() ? "—" : time);
+        String qrDataUri = generateQrDataUri(jwtToken, QR_SIZE);
 
-        return String.format("""
-            <div class="field-row">
-                <div class="field-cell">
-                    <div class="field-label">Date:</div>
-                    <div class="field-value">%s</div>
-                </div>
-                <div class="field-cell">
-                    <div class="field-label">Time:</div>
-                    <div class="field-value">%s</div>
-                </div>
-            </div>
-            """, formattedDate, formattedTime);
+        String svg = template;
+        svg = svg.replaceFirst("(<svg[^>]*>)", "$1<rect width=\"100%\" height=\"100%\" fill=\"#3b1f0e\"/>");
+        svg = svg.replace("{{EVENT_TITLE}}",      escapeXml(eventTitle.toUpperCase()))
+                .replace("{{ATTENDEE_NAME}}",    escapeXml(attendeeName))
+                .replace("{{SEAT_TYPE}}",        escapeXml(series))
+                .replace("{{EVENT_DATE_RANGE}}", escapeXml(dateRange))
+                .replace("{{EVENT_TIME}}",       escapeXml(eventTime.isBlank() ? "\u2014" : eventTime))
+                .replace("{{VENUE}}",            escapeXml(venue))
+                .replace("{{TICKET_NUMBER}}",    escapeXml(ticketNumber))
+                .replace("{{QR_CODE_BASE64}}",   qrDataUri);
+        return svg;
     }
 
-    private String buildLogoTag() {
-        if (logoPath != null && !logoPath.isBlank()) {
-            return String.format("<img src=\"file://%s\" alt=\"logo\"/>", logoPath);
+    // Same high-res pipeline as main backend — renders at 2520x1460 to stay sharp when zoomed
+    private byte[] svgToPdfBytes(String svgContent) throws Exception {
+        PNGTranscoder png = new PNGTranscoder();
+        png.addTranscodingHint(PNGTranscoder.KEY_WIDTH,  RENDER_W);
+        png.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, RENDER_H);
+        png.addTranscodingHint(PNGTranscoder.KEY_AOI,
+                new Rectangle2D.Float(CROP_X, CROP_Y, RENDER_W, RENDER_H));
+
+        ByteArrayOutputStream pngOut = new ByteArrayOutputStream();
+        TranscoderInput input = new TranscoderInput(new StringReader(svgContent));
+        input.setURI("file:///");
+        png.transcode(input, new TranscoderOutput(pngOut));
+
+        com.itextpdf.text.Document doc = new com.itextpdf.text.Document(
+                new com.itextpdf.text.Rectangle(RENDER_W, RENDER_H), 0, 0, 0, 0);
+        ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
+        com.itextpdf.text.pdf.PdfWriter writer =
+                com.itextpdf.text.pdf.PdfWriter.getInstance(doc, pdfOut);
+        writer.setFullCompression();
+        doc.open();
+        com.itextpdf.text.Image img =
+                com.itextpdf.text.Image.getInstance(pngOut.toByteArray());
+        img.scaleAbsolute(RENDER_W, RENDER_H);
+        img.setAbsolutePosition(0, 0);
+        doc.add(img);
+        doc.close();
+        return pdfOut.toByteArray();
+    }
+
+    // Accepted input formats:
+    //   ISO:       "2026-02-20"
+    //   Full:      "Friday, February 20, 2026"   ← what main backend puts in event.date
+    //   DateTime:  "2026-02-20T15:00:00"
+    // All produce:  "20th Feb, 2026"
+    private static final List<DateTimeFormatter> DATE_PARSERS = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,                                    // 2026-02-20
+            DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH),  // Friday, February 20, 2026
+            DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH),        // February 20, 2026
+            DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)          // 20 February 2026
+    );
+
+    private String formatSingleDate(String raw) {
+        if (raw == null || raw.isBlank()) return "\u2014";
+        String trimmed = raw.trim();
+        // Try LocalDateTime first (e.g. "2026-02-20T15:00:00")
+        try {
+            LocalDate d = LocalDateTime.parse(trimmed).toLocalDate();
+            return toDisplayDate(d);
+        } catch (Exception ignored) {}
+        // Try each date-only parser
+        for (DateTimeFormatter fmt : DATE_PARSERS) {
+            try {
+                LocalDate d = LocalDate.parse(trimmed, fmt);
+                return toDisplayDate(d);
+            } catch (Exception ignored) {}
         }
-        return "<span style=\"color:#F97316;font-size:8pt;font-weight:bold;\">N</span>";
+        return raw; // last resort: return as-is
     }
 
-    private String wrapHtml(String body) {
-        return """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-            <html xmlns="http://www.w3.org/1999/xhtml">
-            <head>
-                <meta charset="UTF-8"/>
-                <style>
-                    @page { size:660pt 340pt; margin:0; background-color:#12131a; }
-                    * { margin:0; padding:0; box-sizing:border-box; font-family:Helvetica,Arial,sans-serif; }
-                    body { background:#12131a; padding:0; }
-                    .page-break { page-break-after:always; }
-                    .ticket { width:660pt; height:340pt; display:table; border-radius:16pt; overflow:hidden; }
-                    .left-panel {
-                        display:table-cell; width:370pt; background-color:#F97316;
-                        vertical-align:top; padding:24pt 26pt; border-radius:16pt 0 0 16pt;
-                    }
-                    .right-panel {
-                        display:table-cell; width:290pt; background-color:#ffffff;
-                        vertical-align:middle; text-align:center; padding:20pt;
-                        border-radius:0 16pt 16pt 0;
-                    }
-                    .top-row { display:table; width:100%; margin-bottom:6pt; }
-                    .brand { display:table-cell; vertical-align:middle; color:#ffffff; font-size:12pt; font-weight:bold; }
-                    .badge-cell { display:table-cell; vertical-align:middle; text-align:right; }
-                    .badge { display:inline-block; background-color:#ffffff; color:#F97316; font-size:7pt; font-weight:bold; padding:4pt 14pt; border-radius:20pt; }
-                    .event-name { color:#ffffff; font-size:15pt; font-weight:bold; line-height:1.25; margin-top:6pt; margin-bottom:10pt; }
-                    .divider { width:100%; height:0.8pt; background-color:rgba(255,255,255,0.4); margin-bottom:12pt; font-size:0; line-height:0; }
-                    .divider-bottom { width:100%; height:0.8pt; background-color:rgba(255,255,255,0.4); margin-bottom:10pt; font-size:0; line-height:0; }
-                    .field-grid { display:table; width:100%; }
-                    .field-row { display:table-row; }
-                    .field-cell { display:table-cell; width:50%; padding-bottom:10pt; padding-right:20pt; vertical-align:top; }
-                    .field-cell-full { display:block; width:100%; padding-bottom:10pt; }
-                    .field-label { color:#ffffff; font-size:7.5pt; margin-bottom:2pt; }
-                    .field-value { color:#ffffff; font-size:11pt; font-weight:bold; }
-                    .schedule-val { margin-bottom:3pt; font-size:10.5pt; }
-                    .ticket-num-label { color:#ffffff; font-size:7.5pt; margin-bottom:3pt; }
-                    .ticket-num-value { color:#ffffff; font-size:10pt; font-weight:bold; font-family:Courier,monospace; letter-spacing:0.5pt; }
-                    .qr-card { display:inline-block; border:1pt solid #E0E0E0; border-radius:12pt; padding:14pt; background:#ffffff; }
-                    .qr-wrapper { position:relative; display:inline-block; }
-                    .qr-card img { width:195pt; height:195pt; display:block; }
-                    .qr-logo { position:absolute; top:50%; left:50%; width:38pt; height:38pt; margin-top:-19pt; margin-left:-19pt; background-color:#ffffff; border-radius:8pt; border:2pt solid #F97316; padding:4pt; text-align:center; }
-                    .qr-logo img { width:26pt; height:26pt; display:block; }
-                    .scan-label { color:#999999; font-size:7.5pt; font-weight:bold; margin-top:10pt; letter-spacing:1.5pt; }
-                </style>
-            </head>
-            <body>
-            """ + body + """
-            </body>
-            </html>
-            """;
+    private String toDisplayDate(LocalDate d) {
+        return d.getDayOfMonth() + daySuffix(d.getDayOfMonth()) + " "
+                + d.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH)
+                + ", " + d.getYear();
     }
 
-    private String generateQrBase64(String content) {
-        if (content == null || content.isBlank()) return "";
+    private String formatDateRange(String startRaw, String endRaw) {
+        try {
+            LocalDate start = parseDate(startRaw);
+            LocalDate end   = parseDate(endRaw);
+            if (start == null || end == null) return startRaw + " \u2013 " + endRaw;
+            if (start.equals(end)) return toDisplayDate(start);
+            if (start.getYear() != end.getYear()) {
+                return toDisplayDate(start) + " \u2013 " + toDisplayDate(end);
+            }
+            String startPart = start.getDayOfMonth() + daySuffix(start.getDayOfMonth()) + " "
+                    + start.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH);
+            return startPart + " \u2013 " + toDisplayDate(end);
+        } catch (Exception e) {
+            return startRaw + " \u2013 " + endRaw;
+        }
+    }
+
+    private LocalDate parseDate(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String trimmed = raw.trim();
+        try { return LocalDateTime.parse(trimmed).toLocalDate(); } catch (Exception ignored) {}
+        for (DateTimeFormatter fmt : DATE_PARSERS) {
+            try { return LocalDate.parse(trimmed, fmt); } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private String daySuffix(int day) {
+        if (day >= 11 && day <= 13) return "th";
+        return switch (day % 10) {
+            case 1 -> "st";
+            case 2 -> "nd";
+            case 3 -> "rd";
+            default -> "th";
+        };
+    }
+
+    private String trimWithEllipsis(String value, int maxChars) {
+        if (value == null) return "";
+        return value.length() <= maxChars ? value
+                : value.substring(0, maxChars - 1).stripTrailing() + "\u2026";
+    }
+
+    private String generateQrDataUri(String content, int size) {
+        if (content == null || content.isBlank()) {
+            log.warn("Empty QR content — QR will be blank");
+            return "";
+        }
         try {
             Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
             hints.put(EncodeHintType.MARGIN, 1);
             BitMatrix matrix = new QRCodeWriter()
-                    .encode(content, BarcodeFormat.QR_CODE, 420, 420, hints);
+                    .encode(content, BarcodeFormat.QR_CODE, size, size, hints);
             BufferedImage img = MatrixToImageWriter.toBufferedImage(matrix);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(img, "PNG", out);
-            return Base64.getEncoder().encodeToString(out.toByteArray());
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(img, "PNG", baos);
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray());
         } catch (Exception e) {
             log.error("QR generation failed: {}", e.getMessage());
             return "";
         }
     }
 
-    private String formatDate(String raw) {
-        if (raw == null || raw.isBlank()) return "—";
-        try {
-            LocalDate d   = LocalDate.parse(raw.trim());
-            int       day = d.getDayOfMonth();
-            String    dow = d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            String    mon = d.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
-            return dow + ", " + day + daySuffix(day) + " " + mon + " " + d.getYear();
-        } catch (Exception e) {
-            // already formatted — try to shorten day and month names
-            return raw
-                    .replaceAll("(?i)Monday",    "Mon").replaceAll("(?i)Tuesday",   "Tue")
-                    .replaceAll("(?i)Wednesday", "Wed").replaceAll("(?i)Thursday",  "Thu")
-                    .replaceAll("(?i)Friday",    "Fri").replaceAll("(?i)Saturday",  "Sat")
-                    .replaceAll("(?i)Sunday",    "Sun")
-                    .replaceAll("(?i)January",   "Jan").replaceAll("(?i)February",  "Feb")
-                    .replaceAll("(?i)March",     "Mar").replaceAll("(?i)April",     "Apr")
-                    .replaceAll("(?i)May",       "May").replaceAll("(?i)June",      "Jun")
-                    .replaceAll("(?i)July",      "Jul").replaceAll("(?i)August",    "Aug")
-                    .replaceAll("(?i)September", "Sep").replaceAll("(?i)October",   "Oct")
-                    .replaceAll("(?i)November",  "Nov").replaceAll("(?i)December",  "Dec");
-        }
-    }
-
-    private String daySuffix(int day) {
-        if (day >= 11 && day <= 13) return "th";
-        return switch (day % 10) {
-            case 1  -> "st";
-            case 2  -> "nd";
-            case 3  -> "rd";
-            default -> "th";
-        };
+    private String escapeXml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     @SuppressWarnings("unchecked")

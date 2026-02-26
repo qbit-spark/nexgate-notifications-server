@@ -50,7 +50,7 @@ public class EmailService {
     }
 
     // ── Send with PDF attachment ───────────────────────────────────────────────
-    public EmailResult sendWithAttachment(
+    public void sendWithAttachment(
             NotificationType type,
             String to,
             Map<String, Object> data,
@@ -84,14 +84,19 @@ public class EmailService {
             mailSender.send(mimeMessage);
 
             log.info("✅ Email+PDF sent to: {}", to);
-            return EmailResult.builder()
+            EmailResult.builder()
                     .success(true).provider("glueemail-smtp").build();
 
         } catch (Exception e) {
             log.error("❌ Email+PDF failed to {}: {}", to, e.getMessage(), e);
-            return EmailResult.builder()
+            EmailResult.builder()
                     .success(false).errorMessage(e.getMessage()).provider("glueemail-smtp").build();
         }
+    }
+
+    public String renderTemplate(NotificationType type, Map<String, Object> data) {
+        String templateName = getTemplateForType(type, data);
+        return templateService.renderEmailTemplate(templateName, data);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
